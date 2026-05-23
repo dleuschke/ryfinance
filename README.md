@@ -365,7 +365,9 @@ Ryfinance.screen(query, sort_field: "percentchange", sort_asc: true)
 ```
 
 `Ryfinance::FundQuery` and `Ryfinance::ETFQuery` are also available. The
-predefined query map is exposed as `Ryfinance::PREDEFINED_SCREENER_QUERIES`.
+builders validate Yahoo field names, restricted enum values, and numeric
+comparisons before posting custom screens. The predefined query map is exposed
+as `Ryfinance::PREDEFINED_SCREENER_QUERIES`.
 
 ## Sectors and Industries
 

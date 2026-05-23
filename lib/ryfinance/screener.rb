@@ -27,9 +27,17 @@ module Ryfinance
     end
 
     def to_h
+      operator = @operator
+      operand = @operand
+
+      if @operator == "IS-IN"
+        operator = "OR"
+        operand = @operand.drop(1).map { |value| self.class.new("eq", [@operand.first, value]) }
+      end
+
       {
-        "operator" => @operator,
-        "operands" => @operand.map { |value| value.is_a?(QueryBase) ? value.to_h : value }
+        "operator" => operator,
+        "operands" => operand.map { |value| value.is_a?(QueryBase) ? value.to_h : value }
       }
     end
     alias to_dict to_h
@@ -63,20 +71,73 @@ module Ryfinance
         raise ArgumentError, "#{@operator} operands must all be query objects"
       end
 
-      raise ArgumentError, "#{@operator} requires at least one nested query" if @operand.empty?
+      raise ArgumentError, "#{@operator} requires at least two nested queries" if @operand.length <= 1
     end
 
     def validate_value_operand!
       field = @operand.first
       raise ArgumentError, "#{@operator} first operand must be a field name" unless field.is_a?(String) || field.is_a?(Symbol)
 
+      field = field.to_s
+      @operand[0] = field
+      validate_field!(field)
+
       case @operator
       when "IS-IN"
         raise ArgumentError, "IS-IN requires a field and at least one value" if @operand.length < 2
+        validate_enum_values!(field, 1)
       when "BTWN"
         raise ArgumentError, "BTWN requires a field, lower bound, and upper bound" unless @operand.length == 3
+        validate_numeric_value!(1)
+        validate_numeric_value!(2)
+      when "GT", "LT", "GTE", "LTE"
+        raise ArgumentError, "#{@operator} requires exactly a field and value" unless @operand.length == 2
+        validate_numeric_value!(1)
       else
         raise ArgumentError, "#{@operator} requires exactly a field and value" unless @operand.length == 2
+        validate_enum_values!(field, 1)
+      end
+    end
+
+    def validate_field!(field)
+      return if self.class.valid_fields.values.any? { |fields| fields.map(&:to_s).include?(field) }
+
+      raise ArgumentError, "invalid field for #{self.class.name.split('::').last}: #{field}"
+    end
+
+    def validate_numeric_value!(index)
+      return if @operand[index].is_a?(Numeric)
+
+      raise ArgumentError, "#{@operator} comparison values must be numeric"
+    end
+
+    def validate_enum_values!(field, first_value_index)
+      allowed = valid_values_for(field)
+      return if allowed.nil? || allowed.empty?
+
+      @operand[first_value_index..].each_with_index do |value, offset|
+        normalized = value.is_a?(Symbol) ? value.to_s : value
+        unless allowed.include?(normalized)
+          raise ArgumentError, "invalid value for #{self.class.name.split('::').last} #{field}: #{value}"
+        end
+
+        @operand[first_value_index + offset] = normalized
+      end
+    end
+
+    def valid_values_for(field)
+      values = self.class.valid_values[field.to_sym] || self.class.valid_values[field.to_s]
+      flatten_valid_values(values)
+    end
+
+    def flatten_valid_values(values)
+      case values
+      when Hash
+        values.values.flat_map { |entry| flatten_valid_values(entry) }.uniq
+      when nil
+        nil
+      else
+        Array(values)
       end
     end
   end
@@ -86,19 +147,81 @@ module Ryfinance
 
     VALID_FIELDS = {
       eq_fields: %w[exchange industry peer_group region sector],
-      price: %w[eodprice fiftytwowkpercentchange intradaymarketcap intradayprice intradaypricechange percentchange],
+      price: %w[
+        eodprice fiftytwowkpercentchange intradaymarketcap intradayprice
+        intradaypricechange lastclose52weekhigh.lasttwelvemonths
+        lastclose52weeklow.lasttwelvemonths lastclosemarketcap.lasttwelvemonths
+        percentchange
+      ],
       trading: %w[avgdailyvol3m beta dayvolume eodvolume pctheldinsider pctheldinst],
-      valuation: %w[lastclosepriceearnings.lasttwelvemonths pegratio_5y peratio.lasttwelvemonths pricebookratio.quarterly],
-      profitability: %w[forward_dividend_yield returnonassets.lasttwelvemonths returnonequity.lasttwelvemonths],
-      income_statement: %w[epsgrowth.lasttwelvemonths quarterlyrevenuegrowth.quarterly totalrevenues.lasttwelvemonths],
-      balance_sheet: %w[intradaymarketcap totalassets.lasttwelvemonths totaldebt.lasttwelvemonths totalsharesoutstanding],
-      short_interest: %w[short_interest.value short_percentage_of_shares_outstanding.value short_percentage_of_float.value],
-      esg: %w[environmental_score esg_score governance_score social_score]
+      short_interest: %w[
+        days_to_cover_short.value short_interest.value
+        short_interest_percentage_change.value short_percentage_of_float.value
+        short_percentage_of_shares_outstanding.value
+      ],
+      valuation: %w[
+        bookvalueshare.lasttwelvemonths lastclosemarketcaptotalrevenue.lasttwelvemonths
+        lastclosepriceearnings.lasttwelvemonths lastclosepricetangiblebookvalue.lasttwelvemonths
+        lastclosetevtotalrevenue.lasttwelvemonths pegratio_5y
+        peratio.lasttwelvemonths pricebookratio.quarterly
+      ],
+      profitability: %w[
+        consecutive_years_of_dividend_growth_count forward_dividend_per_share
+        forward_dividend_yield returnonassets.lasttwelvemonths
+        returnonequity.lasttwelvemonths returnontotalcapital.lasttwelvemonths
+      ],
+      leverage: %w[
+        ebitdainterestexpense.lasttwelvemonths ebitinterestexpense.lasttwelvemonths
+        lastclosetevebit.lasttwelvemonths lastclosetevebitda.lasttwelvemonths
+        ltdebtequity.lasttwelvemonths netdebtebitda.lasttwelvemonths
+        totaldebtebitda.lasttwelvemonths totaldebtequity.lasttwelvemonths
+      ],
+      liquidity: %w[
+        altmanzscoreusingtheaveragestockinformationforaperiod.lasttwelvemonths
+        currentratio.lasttwelvemonths operatingcashflowtocurrentliabilities.lasttwelvemonths
+        quickratio.lasttwelvemonths
+      ],
+      income_statement: %w[
+        basicepscontinuingoperations.lasttwelvemonths dilutedeps1yrgrowth.lasttwelvemonths
+        dilutedepscontinuingoperations.lasttwelvemonths ebit.lasttwelvemonths
+        ebitda.lasttwelvemonths ebitda1yrgrowth.lasttwelvemonths
+        ebitdamargin.lasttwelvemonths epsgrowth.lasttwelvemonths
+        grossprofit.lasttwelvemonths grossprofitmargin.lasttwelvemonths
+        netepsbasic.lasttwelvemonths netepsdiluted.lasttwelvemonths
+        netincome1yrgrowth.lasttwelvemonths netincomeis.lasttwelvemonths
+        netincomemargin.lasttwelvemonths operatingincome.lasttwelvemonths
+        quarterlyrevenuegrowth.quarterly totalrevenues.lasttwelvemonths
+        totalrevenues1yrgrowth.lasttwelvemonths
+      ],
+      balance_sheet: %w[
+        intradaymarketcap totalassets.lasttwelvemonths totalcashandshortterminvestments.lasttwelvemonths
+        totalcommonsharesoutstanding.lasttwelvemonths totalcommonequity.lasttwelvemonths
+        totalcurrentassets.lasttwelvemonths totalcurrentliabilities.lasttwelvemonths
+        totaldebt.lasttwelvemonths totalequity.lasttwelvemonths totalsharesoutstanding
+      ],
+      cash_flow: %w[
+        capitalexpenditure.lasttwelvemonths cashfromoperations.lasttwelvemonths
+        cashfromoperations1yrgrowth.lasttwelvemonths forward_dividend_yield
+        leveredfreecashflow.lasttwelvemonths leveredfreecashflow1yrgrowth.lasttwelvemonths
+        unleveredfreecashflow.lasttwelvemonths
+      ],
+      esg: %w[environmental_score esg_score governance_score highest_controversy social_score]
     }.freeze
 
     VALID_VALUES = {
-      region: %w[us ca gb de fr hk jp au in br mx sg],
-      exchange: %w[ASE NAS NCM NGM NMS NYQ PCX PNK OQB OQX TOR VAN LSE GER PAR HKG JPX ASX NSI SAO],
+      region: %w[
+        ae ar at au be br ca ch cl cn co cz de dk ee eg es fi fr gb gr hk hu id
+        ie il in is it jp kr kw lk lt lv mx my nl no nz pe ph pk pl pt qa ro ru
+        sa se sg sr th tr tw us ve vn za
+      ],
+      exchange: %w[
+        AQS ASE ASX ATH BER BSE BTS BUD BRU BUE BVB CCS CNQ CPH CSE CXA CXE CXI
+        DFM DOH DUS DXE EBS ENX EUX FKA FRA GER HAM HAN HEL HKG ICE IOB ISE IST
+        JKT JNB JPX KAR KLS KOE KSC KUW LIT LIS LSE MAD MCE MCX MDD MEX MIL MUN
+        NAE NCM NEO NGM NMS NSI NYQ NZE OEM OQB OQX OSA OSL PAR PCX PHP PHS PNK
+        PRA RIS SAO SAP SAU SES SET SGO SHH SHZ STO STU TAI TAL TLO TLV TOR TWO
+        VAN VIE VSE WSE YHD
+      ],
       sector: [
         "Basic Materials", "Communication Services", "Consumer Cyclical", "Consumer Defensive",
         "Energy", "Financial Services", "Healthcare", "Industrials", "Real Estate",
@@ -111,15 +234,27 @@ module Ryfinance
     @quote_type = "MUTUALFUND"
 
     VALID_FIELDS = {
-      eq_fields: %w[categoryname exchange fundfamily fundcategory region],
-      price: %w[intradayprice percentchange fundnetassets],
-      performance: %w[annualreturnnavy1 annualreturnnavy3 annualreturnnavy5 annualreturnnavy1categoryrank performanceratingoverall],
+      eq_fields: %w[
+        annualreturnnavy1categoryrank categoryname exchange fundcategory fundfamily
+        initialinvestment performanceratingoverall region riskratingoverall
+      ],
+      price: %w[eodprice fundnetassets intradayprice intradaypricechange percentchange],
+      performance: %w[
+        annualreturnnavy1 annualreturnnavy3 annualreturnnavy5 annualreturnnavy1categoryrank
+        performanceratingoverall
+      ],
       risk: %w[riskratingoverall riskratingoverallcategoryrank],
       expenses: %w[annualreportnetexpenseratio initialinvestment]
     }.freeze
 
     VALID_VALUES = {
-      exchange: %w[NAS],
+      exchange: %w[
+        ASE ASX ATH BER BSE BRU BUE BVB CCS CNQ CPH CSE CXA CXE DFM DOH DUS EBS
+        ENX EUX FKA FRA GER HAM HAN HEL HKG ICE IOB ISE IST JKT JNB JPX KAR KLS
+        KOE KSC KUW LIT LIS LSE MAD MCE MCX MEX MIL MUN NAS NCM NEO NGM NMS NSI
+        NYQ NZE OEM OGM OQB OSA OSL PAR PHP PHS PNK PRA RIS SAO SAP SAU SES SET
+        SGO SHH SHZ STO STU TAI TAL TLV TOR TWO VAN VIE VSE WCB WSE
+      ],
       performanceratingoverall: [1, 2, 3, 4, 5],
       riskratingoverall: [1, 2, 3, 4, 5]
     }.freeze
@@ -129,15 +264,49 @@ module Ryfinance
     @quote_type = "ETF"
 
     VALID_FIELDS = {
-      eq_fields: %w[categoryname exchange fundfamily region],
-      price: %w[intradayprice percentchange fundnetassets],
+      eq_fields: %w[
+        categoryname exchange fundfamily fundfamilyname morningstar_economic_moat
+        morningstar_moat_trend morningstar_rating_change morningstar_stewardship
+        morningstar_uncertainty primary_sector region
+      ],
+      fundamentals: %w[fundnetassets ticker],
+      price: %w[eodprice fundnetassets intradayprice intradaypricechange percentchange],
+      feesandexpenses: %w[annualreportgrossexpenseratio annualreportnetexpenseratio turnoverratio],
+      historicalperformance: %w[annualreturnnavy1 annualreturnnavy1categoryrank annualreturnnavy3 annualreturnnavy5],
+      keystats: %w[avgdailyvol3m dayvolume eodvolume fiftytwowkpercentchange percentchange],
+      morningstar_rating: %w[
+        morningstar_last_close_price_to_fair_value morningstar_rating
+        morningstar_rating_updated_time
+      ],
       performance: %w[annualreturnnavy1 annualreturnnavy3 annualreturnnavy5 performanceratingoverall],
-      expenses: %w[annualreportnetexpenseratio],
+      portfoliostatistics: %w[marketcapitalvaluelong],
+      purchasedetails: %w[initialinvestment],
+      trailingperformance: %w[
+        performanceratingoverall quarterendtrailingreturnytd riskratingoverall
+        trailing_3m_return trailing_ytd_return
+      ],
       holdings: %w[holdingcount top10holdings]
     }.freeze
 
     VALID_VALUES = {
-      region: %w[us ca gb de fr hk jp au in br mx sg],
+      region: %w[
+        ae ar at au be br ca ch cl cn co cz de dk ee eg es fi fr gb gr hk hu id
+        ie il in is it jp kr kw lk lt lv mx my nl no nz pe ph pk pl pt qa ro ru
+        sa se sg sr th tr tw us ve vn za
+      ],
+      exchange: %w[
+        AQS ASE ASX ATH BER BSE BTS BUD BRU BUE BVB CCS CNQ CPH CSE CXA CXE CXI
+        DFM DOH DUS DXE EBS ENX EUX FKA FRA GER HAM HAN HEL HKG ICE IOB ISE IST
+        JKT JNB JPX KAR KLS KOE KSC KUW LIT LIS LSE MAD MCE MCX MDD MEX MIL MUN
+        NAE NCM NEO NGM NMS NSI NYQ NZE OEM OQB OQX OSA OSL PAR PCX PHP PHS PNK
+        PRA RIS SAO SAP SAU SES SET SGO SHH SHZ STO STU TAI TAL TLO TLV TOR TWO
+        VAN VIE VSE WSE YHD
+      ],
+      morningstar_economic_moat: ["Narrow", "None", "Wide"],
+      morningstar_moat_trend: %w[Negative Positive Stable],
+      morningstar_rating_change: %w[Downgrade Upgrade],
+      morningstar_stewardship: %w[Exemplary Poor Standard],
+      morningstar_uncertainty: ["Low", "Medium", "High", "Very High", "Extreme"],
       performanceratingoverall: [1, 2, 3, 4, 5]
     }.freeze
   end
@@ -347,4 +516,3 @@ module Ryfinance
     end
   end
 end
-

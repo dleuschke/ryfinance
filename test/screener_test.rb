@@ -27,8 +27,61 @@ class ScreenerTest < Minitest::Test
     end
 
     assert_raises(ArgumentError) do
+      Ryfinance::EquityQuery.new("and", [
+        Ryfinance::EquityQuery.new("gt", ["percentchange", 3])
+      ])
+    end
+
+    assert_raises(ArgumentError) do
       Ryfinance::EquityQuery.new("btwn", ["intradayprice", 10])
     end
+  end
+
+  def test_query_validates_fields_values_and_numeric_operands
+    assert_raises(ArgumentError) do
+      Ryfinance::EquityQuery.new("gt", ["definitely_not_a_yahoo_field", 3])
+    end
+
+    assert_raises(ArgumentError) do
+      Ryfinance::EquityQuery.new("gt", ["percentchange", "3"])
+    end
+
+    assert_raises(ArgumentError) do
+      Ryfinance::EquityQuery.new("eq", ["region", "mars"])
+    end
+
+    assert_raises(ArgumentError) do
+      Ryfinance::EquityQuery.new("is-in", ["exchange", "NMS", "NOPE"])
+    end
+  end
+
+  def test_query_normalizes_symbol_fields_and_enum_values
+    query = Ryfinance::EquityQuery.new("eq", [:region, :us])
+
+    assert_equal({ "operator" => "EQ", "operands" => ["region", "us"] }, query.to_h)
+  end
+
+  def test_is_in_serializes_as_or_of_eq_queries
+    query = Ryfinance::EquityQuery.new("is-in", ["exchange", "NMS", "NYQ"])
+
+    assert_equal(
+      {
+        "operator" => "OR",
+        "operands" => [
+          { "operator" => "EQ", "operands" => ["exchange", "NMS"] },
+          { "operator" => "EQ", "operands" => ["exchange", "NYQ"] }
+        ]
+      },
+      query.to_h
+    )
+  end
+
+  def test_query_metadata_includes_broader_yfinance_fields
+    assert_includes Ryfinance::EquityQuery.valid_fields[:cash_flow], "leveredfreecashflow.lasttwelvemonths"
+    assert_includes Ryfinance::EquityQuery.valid_fields[:short_interest], "days_to_cover_short.value"
+    assert_includes Ryfinance::FundQuery.valid_fields[:price], "intradaypricechange"
+    assert_includes Ryfinance::ETFQuery.valid_fields[:eq_fields], "morningstar_uncertainty"
+    assert_includes Ryfinance::ETFQuery.valid_values[:morningstar_uncertainty], "Very High"
   end
 
   def test_predefined_screen_uses_predefined_endpoint
@@ -71,4 +124,3 @@ class ScreenerTest < Minitest::Test
     assert_equal "DESC", body["sortType"]
   end
 end
-

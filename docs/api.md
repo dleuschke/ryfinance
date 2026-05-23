@@ -673,7 +673,23 @@ Supported operators:
 - `or`
 
 `valid_fields` and `valid_values` expose the common Yahoo fields documented for
-each asset class.
+each asset class. Query builders validate field names, restricted enum values,
+and numeric operands before sending a custom screen to Yahoo. Ruby symbols are
+accepted for field names and enum values when their string form is valid.
+
+`is-in` is a construction shortcut that serializes to Yahoo's `OR` of `EQ`
+queries, matching yfinance:
+
+```ruby
+Ryfinance::EquityQuery.new("is-in", ["exchange", "NMS", "NYQ"]).to_h
+#=> {
+#     "operator"=>"OR",
+#     "operands"=>[
+#       {"operator"=>"EQ", "operands"=>["exchange", "NMS"]},
+#       {"operator"=>"EQ", "operands"=>["exchange", "NYQ"]}
+#     ]
+#   }
+```
 
 ## `Ryfinance::Sector`
 

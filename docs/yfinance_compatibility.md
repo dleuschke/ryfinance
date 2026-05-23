@@ -166,6 +166,10 @@ Screeners:
 - `ETFQuery`
 - `screen`
 
+Query builders validate Yahoo field names, restricted enum values, and numeric
+comparisons before requests are sent. `is-in` serializes as yfinance's `OR` of
+`EQ` queries.
+
 Lookup:
 
 - `Lookup#get_all` / `Lookup#all`
