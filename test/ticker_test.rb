@@ -190,6 +190,63 @@ class TickerTest < Minitest::Test
     assert @ticker.respond_to?(:ttm_income_statement)
   end
 
+  def test_earnings_dates_parses_visualization_response
+    transport = FakeTransport.new
+    transport.route(%r{/v1/finance/visualization}) { earnings_dates_fixture }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    dates = ticker.earnings_dates(limit: 2, offset: 1)
+
+    assert_instance_of Ryfinance::Table, dates
+    assert_equal %i[earnings_date eps_estimate reported_eps surprise_percent event_type timezone_short_name], dates.columns
+    assert_equal Time.utc(2026, 4, 23, 20), dates.first[:earnings_date]
+    assert_equal 3.2, dates.first[:eps_estimate]
+    assert_equal 3.5, dates.first[:reported_eps]
+    assert_equal 9.4, dates.first[:surprise_percent]
+    assert_equal "Earnings", dates.first[:event_type]
+    assert_equal "EDT", dates.first[:timezone_short_name]
+    assert_nil dates.last[:reported_eps]
+    assert_equal "Call", dates.last[:event_type]
+  end
+
+  def test_earnings_dates_sends_limit_and_offset
+    transport = FakeTransport.new
+    transport.route(%r{/v1/finance/visualization}) { earnings_dates_fixture }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    ticker.get_earnings_dates(limit: 7, offset: 14)
+
+    request = transport.requests.last
+    assert_equal :post, request[:method]
+    assert_equal 7, request[:body]["size"]
+    assert_equal 14, request[:body]["offset"]
+    assert_equal ["ticker", "MSFT"], request[:body].dig("query", "operands")
+  end
+
+  def test_earnings_dates_can_return_row_hashes
+    transport = FakeTransport.new
+    transport.route(%r{/v1/finance/visualization}) { earnings_dates_fixture }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    rows = ticker.get_earnings_dates(as_dict: true)
+
+    assert_instance_of Array, rows
+    assert_equal "Earnings", rows.first[:event_type]
+  end
+
+  def test_earnings_dates_returns_nil_when_yahoo_has_no_rows
+    transport = FakeTransport.new
+    transport.route(%r{/v1/finance/visualization}) { earnings_dates_fixture(rows: []) }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    assert_nil ticker.earnings_dates
+  end
+
+  def test_earnings_dates_validates_limit_and_offset
+    assert_raises(ArgumentError) { @ticker.earnings_dates(limit: 101) }
+    assert_raises(ArgumentError) { @ticker.earnings_dates(offset: -1) }
+  end
+
   private
 
   def unit_mixup_chart_fixture

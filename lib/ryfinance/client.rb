@@ -186,6 +186,36 @@ module Ryfinance
       )
     end
 
+    def earnings_dates(symbol, limit:, offset:, timeout: 10)
+      data = post_json(
+        "/v1/finance/visualization",
+        base: QUERY1_URL,
+        params: { lang: "en-US", region: "US" },
+        body: {
+          "size" => limit,
+          "offset" => offset,
+          "query" => {
+            "operator" => "eq",
+            "operands" => ["ticker", symbol]
+          },
+          "sortField" => "startdatetime",
+          "sortType" => "DESC",
+          "entityIdType" => "earnings",
+          "includeFields" => [
+            "startdatetime",
+            "timeZoneShortName",
+            "epsestimate",
+            "epsactual",
+            "epssurprisepct",
+            "eventtype"
+          ]
+        },
+        timeout: timeout
+      )
+
+      data.dig("finance", "result", 0, "documents", 0) || {}
+    end
+
     def screen_predefined(query, params: {}, timeout: 10)
       data = get_json(
         "/v1/finance/screener/predefined/saved",

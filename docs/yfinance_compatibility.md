@@ -79,6 +79,7 @@ Ticker quote data:
 - `get_fast_info` / `fast_info`
 - `get_news` / `news`
 - `get_isin` / `isin`
+- `get_earnings_dates` / `earnings_dates`
 
 Ticker financials and analysis:
 
@@ -175,6 +176,9 @@ Live streaming:
 - `Ticker#funds_data` returns `nil` for non-fund quote types. For ETFs and
   mutual funds it returns a Ruby `Ryfinance::FundsData` object with table and
   hash helpers instead of Pandas DataFrames.
+- `Ticker#earnings_dates` returns a `Ryfinance::Table` with an explicit
+  `:earnings_date` column instead of a Pandas datetime index. It accepts
+  `limit:`, `offset:`, and `as_dict:`.
 - Yahoo cookie/crumb handling is lazy by default. RYFinance fetches a crumb only
   after Yahoo responds as though one is required; yfinance generally manages
   cookie and crumb state before making protected requests.
@@ -258,6 +262,23 @@ vti = Ryfinance::Ticker.new("VTI")
 fund = vti.funds_data
 fund.top_holdings
 fund.sector_weightings
+```
+
+### Earnings Dates
+
+Python:
+
+```python
+msft = yf.Ticker("MSFT")
+dates = msft.get_earnings_dates(limit=12, offset=0)
+```
+
+Ruby:
+
+```ruby
+msft = Ryfinance::Ticker.new("MSFT")
+dates = msft.earnings_dates(limit: 12, offset: 0)
+dates.first[:earnings_date]
 ```
 
 ### Screener

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "time"
+
 module Ryfinance
   class Ticker
     VALID_PERIODS = %w[1d 5d 1mo 3mo 6mo 1y 2y 5y 10y ytd max].freeze
@@ -56,6 +58,23 @@ module Ryfinance
       two_hundred_day_average: :two_hundred_day_average
     }.freeze
 
+    EARNINGS_DATE_COLUMNS = {
+      "Event Start Date" => :earnings_date,
+      "Timezone short name" => :timezone_short_name,
+      "Timezone Short Name" => :timezone_short_name,
+      "EPS Estimate" => :eps_estimate,
+      "Reported EPS" => :reported_eps,
+      "Surprise (%)" => :surprise_percent,
+      "Surprise(%)" => :surprise_percent,
+      "Event Type" => :event_type
+    }.freeze
+
+    EARNINGS_EVENT_TYPES = {
+      "1" => "Call",
+      "2" => "Earnings",
+      "11" => "Meeting"
+    }.freeze
+
     attr_reader :ticker
 
     def initialize(ticker, session: nil, client: nil)
@@ -69,6 +88,7 @@ module Ryfinance
       @options_expirations = nil
       @underlying = {}
       @funds_data = nil
+      @earnings_dates_cache = {}
     end
 
     def inspect
@@ -407,6 +427,19 @@ module Ryfinance
     def quarterly_earnings(**options)
       get_earnings(freq: "quarterly", **options)
     end
+
+    def get_earnings_dates(limit: 12, offset: 0, timeout: 10, as_dict: false)
+      limit = Integer(limit)
+      offset = Integer(offset)
+      raise ArgumentError, "limit must be between 1 and 100" unless limit.between?(1, 100)
+      raise ArgumentError, "offset must be zero or greater" if offset.negative?
+
+      table = @earnings_dates_cache[[limit, offset]] ||= earnings_dates_table(limit: limit, offset: offset, timeout: timeout)
+      return nil if table.empty?
+
+      as_dict ? table.to_a : table
+    end
+    alias earnings_dates get_earnings_dates
 
     def get_options(timeout: 10)
       load_option_expirations(timeout: timeout).keys
@@ -908,6 +941,70 @@ module Ryfinance
       end
       table = Table.new(rows)
       as_dict ? table.to_a : table
+    end
+
+    def earnings_dates_table(limit:, offset:, timeout:)
+      document = @client.earnings_dates(@ticker, limit: limit, offset: offset, timeout: timeout)
+      labels = Array(document["columns"] || document[:columns]).map { |column| column["label"] || column[:label] }
+      keys = labels.map { |label| earnings_date_column_key(label) }
+      rows = Array(document["rows"] || document[:rows]).map do |values|
+        parsed = keys.each_with_index.each_with_object({}) do |(key, index), row|
+          next unless key
+
+          row[key] = normalize_earnings_date_value(key, values[index])
+        end
+        Utils.compact_nil(parsed)
+      end
+
+      Table.new(rows, columns: %i[earnings_date eps_estimate reported_eps surprise_percent event_type timezone_short_name])
+    end
+
+    def earnings_date_column_key(label)
+      EARNINGS_DATE_COLUMNS[label.to_s] || Utils.symbolize_key(label)
+    end
+
+    def normalize_earnings_date_value(key, value)
+      case key
+      when :earnings_date
+        parse_earnings_date(value)
+      when :event_type
+        value.nil? ? nil : EARNINGS_EVENT_TYPES.fetch(value.to_s, "Unknown")
+      when :eps_estimate, :reported_eps, :surprise_percent
+        numeric_or_nil(value)
+      else
+        value
+      end
+    end
+
+    def parse_earnings_date(value)
+      case value
+      when Time
+        value
+      when Integer
+        Utils.yahoo_date(value)
+      when Numeric
+        Utils.yahoo_date(value.to_i)
+      else
+        text = value.to_s
+        return nil if text.empty?
+        return Utils.yahoo_date(text.to_i) if text.match?(/\A\d+\z/)
+
+        deterministic_text = text.match?(/[zZ]|[+-]\d{2}:?\d{2}\z/) ? text : "#{text} UTC"
+        begin
+          Time.parse(deterministic_text).utc
+        rescue ArgumentError
+          value
+        end
+      end
+    end
+
+    def numeric_or_nil(value)
+      return nil if value.nil?
+
+      numeric = Float(value)
+      numeric.zero? ? nil : numeric
+    rescue ArgumentError, TypeError
+      value
     end
 
     def statement_module(base, freq)

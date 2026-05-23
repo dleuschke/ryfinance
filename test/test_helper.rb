@@ -245,6 +245,34 @@ def stock_quote_summary_fixture
   }
 end
 
+def earnings_dates_fixture(rows: nil)
+  {
+    "finance" => {
+      "result" => [
+        {
+          "documents" => [
+            {
+              "columns" => [
+                { "label" => "Event Start Date" },
+                { "label" => "Timezone short name" },
+                { "label" => "EPS Estimate" },
+                { "label" => "Reported EPS" },
+                { "label" => "Surprise (%)" },
+                { "label" => "Event Type" }
+              ],
+              "rows" => rows || [
+                ["2026-04-23T20:00:00Z", "EDT", 3.2, 3.5, 9.4, "2"],
+                ["2026-01-30T21:30:00Z", "EST", 2.9, 0.0, 0.0, "1"]
+              ]
+            }
+          ]
+        }
+      ],
+      "error" => nil
+    }
+  }
+end
+
 def options_fixture
   {
     "optionChain" => {

@@ -188,6 +188,7 @@ ticker.actions
 ticker.info
 ticker.fast_info
 ticker.calendar
+ticker.earnings_dates
 ticker.sec_filings
 ticker.news(count: 10)
 ticker.funds_data
@@ -195,6 +196,19 @@ ticker.funds_data
 
 `info` returns a flattened hash combining Yahoo quote summary modules and quote
 data. Keys are snake_case symbols.
+
+`earnings_dates(limit: 12, offset: 0)` returns a `Ryfinance::Table` with:
+
+- `earnings_date`
+- `eps_estimate`
+- `reported_eps`
+- `surprise_percent`
+- `event_type`
+- `timezone_short_name`
+
+Pass `as_dict: true` to return an array of row hashes. The method returns `nil`
+when Yahoo has no earnings calendar rows for the ticker. Yahoo limits a single
+request to 100 rows.
 
 ### Analysis and Holders
 
@@ -544,6 +558,7 @@ compatibility. New Ruby code should prefer the canonical names above.
 | `get_info` | `info` |
 | `get_fast_info` | `fast_info` |
 | `get_calendar` | `calendar` |
+| `get_earnings_dates` | `earnings_dates` |
 | `get_sec_filings` | `sec_filings` |
 | `get_recommendations` | `recommendations` |
 | `get_recommendations_summary` | `recommendations_summary` |
