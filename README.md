@@ -1,5 +1,7 @@
 # RYFinance
 
+[![CI](https://github.com/dleuschke/ryfinance/actions/workflows/ci.yml/badge.svg)](https://github.com/dleuschke/ryfinance/actions/workflows/ci.yml)
+
 RYFinance is a Ruby-first gem for Yahoo Finance data. It ports the practical
 surface area of Python's `yfinance`, but the primary API is designed around Ruby
 classes, keyword arguments, blocks, and `Enumerable`-friendly data structures.
@@ -34,8 +36,10 @@ For local development from this repository:
 
 ```sh
 bundle exec rake test
-gem build ryfinance.gemspec
+bundle exec rake ci
 ```
+
+Release steps are documented in [docs/releasing.md](docs/releasing.md).
 
 ## Quick Start
 
