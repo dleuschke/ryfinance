@@ -68,6 +68,7 @@ module Ryfinance
       @last_history_metadata = {}
       @options_expirations = nil
       @underlying = {}
+      @funds_data = nil
     end
 
     def inspect
@@ -471,6 +472,15 @@ module Ryfinance
       info[:isin]
     end
     alias isin get_isin
+
+    def get_funds_data(timeout: 10)
+      data = (@funds_data ||= FundsData.new(@ticker, client: @client, timeout: timeout))
+      quote_type = data.quote_type(timeout: timeout).to_s.upcase
+      return data if FundsData::FUND_QUOTE_TYPES.include?(quote_type)
+
+      nil
+    end
+    alias funds_data get_funds_data
 
     def live(message_handler = nil, verbose: true, websocket: nil, **options, &block)
       handler = block || message_handler

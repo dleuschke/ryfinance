@@ -152,6 +152,99 @@ def quote_summary_fixture
   }
 end
 
+def fund_quote_summary_fixture
+  {
+    "quoteSummary" => {
+      "result" => [
+        {
+          "quoteType" => {
+            "quoteType" => "ETF"
+          },
+          "summaryProfile" => {
+            "longBusinessSummary" => "A total stock market ETF."
+          },
+          "topHoldings" => {
+            "cashPosition" => { "raw" => 0.01 },
+            "stockPosition" => { "raw" => 0.95 },
+            "bondPosition" => { "raw" => 0.02 },
+            "convertiblePosition" => { "raw" => 0.0 },
+            "preferredPosition" => { "raw" => 0.0 },
+            "otherPosition" => { "raw" => 0.02 },
+            "holdings" => [
+              {
+                "symbol" => "AAPL",
+                "holdingName" => "Apple Inc.",
+                "holdingPercent" => { "raw" => 0.064 }
+              }
+            ],
+            "equityHoldings" => {
+              "priceToEarnings" => { "raw" => 21.1 },
+              "priceToEarningsCat" => { "raw" => 22.2 },
+              "priceToBook" => { "raw" => 4.2 },
+              "priceToBookCat" => { "raw" => 4.4 },
+              "priceToSales" => { "raw" => 2.8 },
+              "priceToSalesCat" => { "raw" => 2.9 },
+              "priceToCashflow" => { "raw" => 12.5 },
+              "priceToCashflowCat" => { "raw" => 13.0 },
+              "medianMarketCap" => { "raw" => 98_000_000_000 },
+              "medianMarketCapCat" => { "raw" => 80_000_000_000 },
+              "threeYearEarningsGrowth" => { "raw" => 0.08 },
+              "threeYearEarningsGrowthCat" => { "raw" => 0.06 }
+            },
+            "bondHoldings" => {
+              "maturity" => { "raw" => 8.1 },
+              "maturityCat" => { "raw" => 7.0 },
+              "duration" => { "raw" => 5.2 },
+              "durationCat" => { "raw" => 4.8 },
+              "creditQuality" => "AA",
+              "creditQualityCat" => "A"
+            },
+            "bondRatings" => [
+              { "usGovernment" => { "raw" => 0.2 } },
+              { "aaa" => { "raw" => 0.3 } }
+            ],
+            "sectorWeightings" => [
+              { "technology" => { "raw" => 0.28 } },
+              { "healthcare" => { "raw" => 0.13 } }
+            ]
+          },
+          "fundProfile" => {
+            "categoryName" => "Large Blend",
+            "family" => "Vanguard",
+            "legalType" => "Exchange Traded Fund",
+            "feesExpensesInvestment" => {
+              "annualReportExpenseRatio" => { "raw" => 0.0003 },
+              "annualHoldingsTurnover" => { "raw" => 0.04 },
+              "totalNetAssets" => { "raw" => 1_000_000_000 }
+            },
+            "feesExpensesInvestmentCat" => {
+              "annualReportExpenseRatio" => { "raw" => 0.005 },
+              "annualHoldingsTurnover" => { "raw" => 0.3 },
+              "totalNetAssets" => { "raw" => 500_000_000 }
+            }
+          }
+        }
+      ],
+      "error" => nil
+    }
+  }
+end
+
+def stock_quote_summary_fixture
+  {
+    "quoteSummary" => {
+      "result" => [
+        {
+          "quoteType" => {
+            "quoteType" => "EQUITY"
+          }
+        }
+      ],
+      "error" => nil
+    }
+  }
+end
+
 def options_fixture
   {
     "optionChain" => {

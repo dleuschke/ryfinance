@@ -39,6 +39,7 @@ yfinance returns Pandas `DataFrame` and `Series` objects. RYFinance returns
 | `DataFrame` | `Ryfinance::Table` |
 | `Series` | `Ryfinance::Table` with one value column |
 | MultiIndex download | `Ryfinance::DownloadResult` |
+| `FundsData` DataFrames | `Ryfinance::FundsData` methods returning `Ryfinance::Table` |
 | `df.to_csv()` | `table.to_csv` |
 | `df.to_dict()` | `table.to_a` or `table.to_h` |
 
@@ -100,6 +101,7 @@ Ticker financials and analysis:
 - `get_insider_transactions` / `insider_transactions`
 - `get_insider_roster_holders` / `insider_roster_holders`
 - `get_insider_purchases` / `insider_purchases`
+- `get_funds_data` / `funds_data`
 - `get_income_stmt` / `income_statement`
 - `get_balance_sheet` / `balance_sheet`
 - `get_cash_flow` / `cash_flow`
@@ -170,6 +172,9 @@ Live streaming:
   familiarity but are currently ignored.
 - Top-level `Ryfinance.Ticker(...)` and similar capitalized module methods are
   compatibility shims. Prefer `Ryfinance::Ticker.new(...)` in new Ruby code.
+- `Ticker#funds_data` returns `nil` for non-fund quote types. For ETFs and
+  mutual funds it returns a Ruby `Ryfinance::FundsData` object with table and
+  hash helpers instead of Pandas DataFrames.
 - Yahoo cookie/crumb handling is lazy by default. RYFinance fetches a crumb only
   after Yahoo responds as though one is required; yfinance generally manages
   cookie and crumb state before making protected requests.
@@ -233,6 +238,26 @@ Ruby:
 msft = Ryfinance::Ticker.new("MSFT")
 msft.balance_sheet
 msft.quarterly_income_statement
+```
+
+### Fund Data
+
+Python:
+
+```python
+vti = yf.Ticker("VTI")
+fund = vti.funds_data
+fund.top_holdings
+fund.sector_weightings
+```
+
+Ruby:
+
+```ruby
+vti = Ryfinance::Ticker.new("VTI")
+fund = vti.funds_data
+fund.top_holdings
+fund.sector_weightings
 ```
 
 ### Screener

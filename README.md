@@ -12,6 +12,7 @@ It focuses on the workflows most users reach for first:
 - Quote info, fast quote data, recommendations, analyst targets, and calendar data
 - Historical OHLCV rows with dividends, splits, and capital gains
 - Options expiration dates and option chains
+- ETF and mutual fund holdings, allocations, and fund operations
 - WebSocket streaming plus search, screener, market, sector, and industry helpers
 
 RYFinance is not affiliated with Yahoo, Yahoo Finance, or the Python `yfinance`
@@ -175,6 +176,29 @@ msft.earnings
 Yahoo returns these datasets with different coverage by ticker and asset type.
 When Yahoo omits a module, RYFinance returns an empty table or hash instead of
 inventing values.
+
+## ETF and Mutual Fund Data
+
+`Ticker#funds_data` mirrors yfinance's fund-specific object for ETFs and mutual
+funds. It returns `nil` for ordinary equities.
+
+```ruby
+fund = Ryfinance::Ticker.new("VTI").funds_data
+
+fund.quote_type
+fund.description
+fund.fund_overview
+fund.top_holdings
+fund.asset_classes
+fund.sector_weightings
+fund.bond_ratings
+fund.equity_holdings
+fund.bond_holdings
+fund.fund_operations
+```
+
+Holdings and peer-comparison datasets are returned as `Ryfinance::Table`
+objects. Allocation datasets are returned as snake_case Ruby hashes.
 
 ## Options
 

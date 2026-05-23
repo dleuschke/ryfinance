@@ -190,6 +190,7 @@ ticker.fast_info
 ticker.calendar
 ticker.sec_filings
 ticker.news(count: 10)
+ticker.funds_data
 ```
 
 `info` returns a flattened hash combining Yahoo quote summary modules and quote
@@ -219,6 +220,37 @@ ticker.insider_purchases
 
 Table-returning methods accept `as_dict: true`, which returns an array of row
 hashes.
+
+### ETF and Mutual Fund Data
+
+```ruby
+fund = Ryfinance::Ticker.new("VTI").funds_data
+fund.top_holdings
+fund.sector_weightings
+fund.fund_operations
+```
+
+`funds_data` returns `nil` for non-fund quote types. For ETFs and mutual funds,
+it returns a `Ryfinance::FundsData` object.
+
+Available methods:
+
+- `quote_type`
+- `fund?`
+- `description`
+- `fund_overview`
+- `fund_operations`
+- `asset_classes`
+- `top_holdings`
+- `equity_holdings`
+- `bond_holdings`
+- `bond_ratings`
+- `sector_weightings`
+- `to_h`
+
+`top_holdings`, `equity_holdings`, `bond_holdings`, and `fund_operations` return
+`Ryfinance::Table` objects. Asset classes, bond ratings, and sector weightings
+return snake_case Ruby hashes.
 
 ### Financial Statements
 
@@ -530,6 +562,7 @@ compatibility. New Ruby code should prefer the canonical names above.
 | `get_insider_transactions` | `insider_transactions` |
 | `get_insider_roster_holders` | `insider_roster_holders` |
 | `get_insider_purchases` | `insider_purchases` |
+| `get_funds_data` | `funds_data` |
 | `get_options` | `options` |
 | `get_news` | `news` |
 | `get_shares_full` | `shares_full` |
