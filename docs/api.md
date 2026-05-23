@@ -52,6 +52,8 @@ Common options:
 - `actions:` include dividends, splits, and capital gains
 - `prepost:` include pre-market and post-market bars
 - `rounding:` round numeric float values to two decimals
+- `repair:` run price, action, split, and adjustment repair passes before
+  auto/back adjustment
 - `timeout:` HTTP timeout in seconds
 - `multi_level_index:` when true, always return `DownloadResult`
 
@@ -148,6 +150,7 @@ Supported ticker forms:
 ticker.history(period: "1mo", interval: "1d")
 ticker.history(start: "2024-01-01", end: "2024-02-01")
 ticker.history(actions: true, auto_adjust: false)
+ticker.history(repair: true)
 ```
 
 Returns a `Ryfinance::Table` with columns:
@@ -162,6 +165,13 @@ Returns a `Ryfinance::Table` with columns:
 - `dividends`, when `actions: true`
 - `stock_splits`, when `actions: true`
 - `capital_gains`, when `actions: true`
+- `repaired`, when `repair: true`
+- `repair_actions`, when `repair: true` and the row changed
+
+When `repair: true`, `metadata[:repairs]` contains a per-row summary of repair
+actions. Repair passes currently cover 100x currency/unit mixups, zero or
+missing traded prices, bad split adjustment jumps, missing dividend adjustment,
+OHLC bound violations, and dividend/capital-gain unit mixups.
 
 ### Corporate Actions
 

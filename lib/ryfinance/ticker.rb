@@ -4,6 +4,14 @@ module Ryfinance
   class Ticker
     VALID_PERIODS = %w[1d 5d 1mo 3mo 6mo 1y 2y 5y 10y ytd max].freeze
     VALID_INTERVALS = %w[1m 2m 5m 15m 30m 60m 90m 1h 1d 5d 1wk 1mo 3mo].freeze
+    PRICE_COLUMNS = %i[open high low close adj_close].freeze
+    ACTION_PRICE_COLUMNS = %i[dividends capital_gains].freeze
+    UNIT_MIXUP_TARGETS = {
+      100.0 => 0.01,
+      0.01 => 100.0
+    }.freeze
+    UNIT_MIXUP_TOLERANCE = 0.05
+    SPLIT_REPAIR_TOLERANCE = 0.15
 
     INFO_MODULES = %w[
       assetProfile summaryProfile summaryDetail quoteType price financialData
@@ -66,7 +74,7 @@ module Ryfinance
       "#<#{self.class.name} #{@ticker}>"
     end
 
-    def history(period: "1mo", interval: "1d", start: nil, end_date: nil, actions: true, auto_adjust: true, back_adjust: false, prepost: false, rounding: false, keepna: false, timeout: 10, **options)
+    def history(period: "1mo", interval: "1d", start: nil, end_date: nil, actions: true, auto_adjust: true, back_adjust: false, prepost: false, rounding: false, keepna: false, repair: false, timeout: 10, **options)
       finish = options.key?(:end) ? options[:end] : end_date
       range = options.fetch(:range, period)
 
@@ -96,7 +104,8 @@ module Ryfinance
         auto_adjust: auto_adjust,
         back_adjust: back_adjust,
         rounding: rounding,
-        keepna: keepna
+        keepna: keepna,
+        repair: repair
       )
     end
 
@@ -498,7 +507,7 @@ module Ryfinance
       raise ArgumentError, "interval must be one of: #{VALID_INTERVALS.join(', ')}"
     end
 
-    def table_from_chart(result, actions:, auto_adjust:, back_adjust:, rounding:, keepna:)
+    def table_from_chart(result, actions:, auto_adjust:, back_adjust:, rounding:, keepna:, repair:)
       timestamps = result.fetch("timestamp", [])
       quote = result.dig("indicators", "quote", 0) || {}
       adjclose = result.dig("indicators", "adjclose", 0, "adjclose") || []
@@ -517,14 +526,6 @@ module Ryfinance
 
         next if !keepna && [open, high, low, close, adj_close, volume].all?(&:nil?)
 
-        if (auto_adjust || back_adjust) && close && adj_close && !close.to_f.zero?
-          ratio = adj_close.to_f / close.to_f
-          open = open.to_f * ratio if open
-          high = high.to_f * ratio if high
-          low = low.to_f * ratio if low
-          close = adj_close if auto_adjust
-        end
-
         row = {
           date: Utils.yahoo_date(timestamp),
           open: open,
@@ -541,13 +542,294 @@ module Ryfinance
           row[:capital_gains] = capital_gains.fetch(timestamp, 0.0)
         end
 
+        row[:repaired] = false if repair
+        row[:repair_actions] = [] if repair
+        row
+      end
+
+      repair_report = repair ? repair_history_rows(rows) : []
+
+      rows.map! do |row|
+        close = row[:close]
+        adj_close = row[:adj_close]
+        if (auto_adjust || back_adjust) && close && adj_close && !close.to_f.zero?
+          ratio = adj_close.to_f / close.to_f
+          row[:open] = row[:open].to_f * ratio if row[:open]
+          row[:high] = row[:high].to_f * ratio if row[:high]
+          row[:low] = row[:low].to_f * ratio if row[:low]
+          row[:close] = adj_close if auto_adjust
+        end
+
         row.transform_values! { |value| Utils.maybe_round(value) } if rounding
+        row.delete(:repair_actions) if repair && row[:repair_actions].empty?
         Utils.compact_nil(row)
       end
 
       columns = %i[date open high low close volume adj_close]
       columns += %i[dividends stock_splits capital_gains] if actions
-      Table.new(rows, columns: columns, metadata: @last_history_metadata)
+      columns += %i[repaired repair_actions] if repair
+      metadata = @last_history_metadata.dup
+      metadata[:repairs] = repair_report if repair
+      @last_history_metadata = metadata
+      Table.new(rows, columns: columns, metadata: metadata)
+    end
+
+    def repair_history_rows(rows)
+      repair_report = []
+      repair_zero_price_rows(rows, repair_report)
+      repair_unit_mixups(rows, repair_report)
+      repair_bad_split_adjustments(rows, repair_report)
+      repair_action_unit_mixups(rows, repair_report)
+      repair_missing_dividend_adjustments(rows, repair_report)
+      repair_ohlc_bounds(rows, repair_report)
+      repair_report
+    end
+
+    def repair_missing_dividend_adjustments(rows, repair_report)
+      rows.each_with_index do |row, index|
+        dividend = numeric_value(row[:dividends])
+        next unless dividend&.positive? && index.positive?
+
+        previous_close = numeric_value(rows[index - 1][:close])
+        previous_adj_close = numeric_value(rows[index - 1][:adj_close])
+        next unless previous_close&.positive? && previous_adj_close&.positive?
+        next unless near_ratio?(previous_adj_close / previous_close, 1.0)
+
+        factor = (previous_close - dividend) / previous_close
+        next unless factor.positive? && factor < 1.0
+
+        (0...index).each do |repair_index|
+          adjusted = numeric_value(rows[repair_index][:adj_close])
+          next unless adjusted
+
+          rows[repair_index][:adj_close] = adjusted * factor
+          record_repair(rows[repair_index], repair_report, :dividend_adjustment, [:adj_close], factor: factor)
+        end
+      end
+    end
+
+    def repair_zero_price_rows(rows, repair_report)
+      rows.each_with_index do |row, index|
+        next unless row[:volume].to_i.positive?
+
+        repaired_columns = PRICE_COLUMNS.filter_map do |column|
+          next unless zero_or_missing_price?(row[column])
+
+          replacement = interpolate_price(rows, index, column)
+          next unless replacement
+
+          row[column] = replacement
+          column
+        end
+        record_repair(row, repair_report, :missing_price, repaired_columns) unless repaired_columns.empty?
+      end
+    end
+
+    def repair_unit_mixups(rows, repair_report)
+      factors = rows.each_index.map { |index| unit_mixup_repair_factor(rows, index) }
+      rows.each_with_index do |row, index|
+        factor = factors[index]
+        next unless factor
+
+        columns = scale_columns(row, PRICE_COLUMNS, factor)
+        record_repair(row, repair_report, :currency_unit, columns, factor: factor) unless columns.empty?
+      end
+    end
+
+    def repair_bad_split_adjustments(rows, repair_report)
+      rows.each_with_index do |row, index|
+        split = numeric_value(row[:stock_splits])
+        next unless split && split > 1.0 && index.positive?
+
+        previous_close = numeric_value(rows[index - 1][:close])
+        current_close = numeric_value(row[:close])
+        next unless previous_close&.positive? && current_close&.positive?
+        next unless near_ratio?(previous_close / current_close, split, tolerance: SPLIT_REPAIR_TOLERANCE)
+
+        price_factor = 1.0 / split
+        (0...index).each do |repair_index|
+          price_columns = scale_columns(rows[repair_index], PRICE_COLUMNS, price_factor)
+          volume = numeric_value(rows[repair_index][:volume])
+          if volume
+            rows[repair_index][:volume] = volume * split
+            price_columns << :volume
+          end
+          record_repair(rows[repair_index], repair_report, :split_adjustment, price_columns, factor: price_factor) unless price_columns.empty?
+        end
+      end
+    end
+
+    def repair_ohlc_bounds(rows, repair_report)
+      rows.each do |row|
+        values = %i[open high low close].filter_map { |column| numeric_value(row[column]) }
+        next if values.empty?
+
+        expected_high = values.max
+        expected_low = values.min
+        columns = []
+
+        high = numeric_value(row[:high])
+        if high && high != expected_high
+          row[:high] = expected_high
+          columns << :high
+        end
+
+        low = numeric_value(row[:low])
+        if low && low != expected_low
+          row[:low] = expected_low
+          columns << :low
+        end
+
+        record_repair(row, repair_report, :ohlc_bounds, columns) unless columns.empty?
+      end
+    end
+
+    def repair_action_unit_mixups(rows, repair_report)
+      rows.each_with_index do |row, index|
+        reference = neighboring_close_reference(rows, index)
+        next unless reference&.positive?
+
+        columns = ACTION_PRICE_COLUMNS.filter_map do |column|
+          value = numeric_value(row[column])
+          next unless value&.positive?
+
+          repair_factor = action_unit_mixup_factor(value, reference, rows, index)
+          next unless repair_factor
+
+          row[column] = value * repair_factor
+          column
+        end
+        record_repair(row, repair_report, :action_currency_unit, columns) unless columns.empty?
+      end
+    end
+
+    def unit_mixup_repair_factor(rows, index)
+      return nil if near_split_event?(rows, index)
+
+      close = numeric_value(rows[index][:close])
+      reference = neighboring_close_reference(rows, index)
+      return nil unless close&.positive? && reference&.positive?
+
+      UNIT_MIXUP_TARGETS.each do |target, repair_factor|
+        return repair_factor if near_ratio?(close / reference, target)
+      end
+
+      nil
+    end
+
+    def action_unit_mixup_factor(value, reference, rows, index)
+      return nil unless value.positive? && reference.positive?
+
+      UNIT_MIXUP_TARGETS.each_value do |repair_factor|
+        repaired = value * repair_factor
+        return repair_factor if repaired < reference * 0.5 && value >= reference * 0.5
+      end
+
+      price_drop = action_price_drop(rows, index)
+      if price_drop&.positive?
+        UNIT_MIXUP_TARGETS.each_value do |repair_factor|
+          repaired = value * repair_factor
+          next unless repaired < reference * 0.5
+
+          return repair_factor if near_ratio?(repaired / price_drop, 1.0, tolerance: 0.5)
+        end
+      end
+
+      nil
+    end
+
+    def action_price_drop(rows, index)
+      return nil unless index.positive?
+
+      previous_close = numeric_value(rows[index - 1][:close])
+      current_close = numeric_value(rows[index][:close])
+      return nil unless previous_close&.positive? && current_close&.positive?
+
+      drop = previous_close - current_close
+      drop.positive? ? drop : nil
+    end
+
+    def neighboring_close_reference(rows, index)
+      values = []
+      [index - 2, index - 1, index + 1, index + 2].each do |neighbor_index|
+        next if neighbor_index.negative? || neighbor_index >= rows.length
+
+        close = numeric_value(rows[neighbor_index][:close])
+        values << close if close&.positive?
+      end
+      return nil if values.empty?
+
+      sorted = values.sort
+      return nil if sorted.length > 1 && (sorted.last / sorted.first) > 10
+      return sorted.first if sorted.one?
+
+      middle = sorted.length / 2
+      sorted.length.odd? ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2.0
+    end
+
+    def near_split_event?(rows, index)
+      [index - 1, index, index + 1].any? do |event_index|
+        next false if event_index.negative? || event_index >= rows.length
+
+        rows[event_index].fetch(:stock_splits, 0).to_f.positive?
+      end
+    end
+
+    def near_ratio?(ratio, target, tolerance: UNIT_MIXUP_TOLERANCE)
+      ((ratio - target).abs / target) <= tolerance
+    end
+
+    def zero_or_missing_price?(value)
+      numeric = numeric_value(value)
+      numeric.nil? || numeric.zero?
+    end
+
+    def interpolate_price(rows, index, column)
+      previous_value = nearest_price(rows, index, column, -1)
+      next_value = nearest_price(rows, index, column, 1)
+      return nil unless previous_value && next_value
+
+      (previous_value + next_value) / 2.0
+    end
+
+    def nearest_price(rows, index, column, direction)
+      neighbor_index = index + direction
+      while neighbor_index >= 0 && neighbor_index < rows.length
+        value = numeric_value(rows[neighbor_index][column])
+        return value if value&.positive?
+
+        neighbor_index += direction
+      end
+
+      nil
+    end
+
+    def scale_columns(row, columns, factor)
+      columns.filter_map do |column|
+        value = numeric_value(row[column])
+        next unless value
+
+        row[column] = value * factor
+        column
+      end
+    end
+
+    def record_repair(row, repair_report, type, columns, factor: nil)
+      return if columns.empty?
+
+      row[:repaired] = true
+      row[:repair_actions] ||= []
+      action = { type: type, columns: columns }
+      action[:factor] = factor if factor
+      row[:repair_actions] << action
+      repair_report << action.merge(date: row[:date])
+    end
+
+    def numeric_value(value)
+      return nil unless value.is_a?(Numeric)
+      return nil if value.respond_to?(:finite?) && !value.finite?
+
+      value.to_f
     end
 
     def value_at(hash, key, index)

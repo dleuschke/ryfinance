@@ -27,4 +27,49 @@ class DownloadTest < Minitest::Test
     assert result.to_a.first.key?(:"MSFT.close")
     assert result.to_a.first.key?(:"AAPL.close")
   end
+
+  def test_download_passes_repair_option_to_history
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { download_repair_fixture }
+    client = Ryfinance::Client.new(transport: transport)
+
+    result = Ryfinance.download("msft", client: client, auto_adjust: false, repair: true)
+
+    assert_equal 111.0, result[1][:close]
+    assert result[1][:repaired]
+  end
+
+  private
+
+  def download_repair_fixture
+    {
+      "chart" => {
+        "result" => [
+          {
+            "meta" => {
+              "symbol" => "MSFT",
+              "currency" => "USD",
+              "exchangeTimezoneName" => "America/New_York"
+            },
+            "timestamp" => [1_704_067_200, 1_704_153_600, 1_704_240_000],
+            "indicators" => {
+              "quote" => [
+                {
+                  "open" => [99.0, 11_000.0, 111.0],
+                  "high" => [101.0, 11_200.0, 113.0],
+                  "low" => [98.0, 10_900.0, 110.0],
+                  "close" => [100.0, 11_100.0, 112.0],
+                  "volume" => [1000, 1200, 1400]
+                }
+              ],
+              "adjclose" => [
+                { "adjclose" => [100.0, 11_100.0, 112.0] }
+              ]
+            }
+          }
+        ],
+        "error" => nil
+      }
+    }
+  end
 end

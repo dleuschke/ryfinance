@@ -7,6 +7,7 @@ All notable changes to RYFinance are documented here.
 - Added CI and release hygiene checks.
 - Added an opt-in live Yahoo WebSocket smoke test.
 - Added lazy Yahoo cookie/crumb retry handling in the HTTP client.
+- Added opt-in history price repair passes through `repair: true`.
 
 ## 0.3.0 - 2026-05-23
 

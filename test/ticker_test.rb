@@ -51,6 +51,86 @@ class TickerTest < Minitest::Test
     assert_equal "1704240000", query["period2"]
   end
 
+  def test_history_repair_fixes_100x_currency_unit_mixups
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { unit_mixup_chart_fixture }
+    ticker = Ryfinance::Ticker.new("aet.l", client: Ryfinance::Client.new(transport: transport))
+
+    table = ticker.history(period: "1mo", auto_adjust: false, repair: true)
+
+    assert_equal 111.0, table[1][:close]
+    assert_equal 112.0, table[1][:high]
+    assert table[1][:repaired]
+    assert_equal :currency_unit, table[1][:repair_actions].first[:type]
+    assert_equal 0.01, table[1][:repair_actions].first[:factor]
+    assert_equal 1, table.metadata[:repairs].count { |repair| repair[:type] == :currency_unit }
+  end
+
+  def test_history_repair_interpolates_missing_prices_with_volume
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { missing_price_chart_fixture }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    table = ticker.history(period: "1mo", auto_adjust: false, repair: true)
+
+    assert_equal 106.0, table[1][:close]
+    assert_equal 106.0, table[1][:adj_close]
+    assert table[1][:repaired]
+    assert_equal :missing_price, table[1][:repair_actions].first[:type]
+  end
+
+  def test_history_repair_fixes_ohlc_bounds_and_action_unit_mixups
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { ohlc_and_action_repair_fixture }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    table = ticker.history(period: "1mo", auto_adjust: false, repair: true)
+
+    assert_equal 105.0, table.first[:high]
+    assert_equal 95.0, table.first[:low]
+    assert_equal 1.0, table.first[:dividends]
+    assert table.first[:repaired]
+    assert_includes table.first[:repair_actions].map { |repair| repair[:type] }, :ohlc_bounds
+    assert_includes table.first[:repair_actions].map { |repair| repair[:type] }, :action_currency_unit
+  end
+
+  def test_history_repair_fixes_missing_dividend_adjustment
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { missing_dividend_adjustment_fixture }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    table = ticker.history(period: "1mo", auto_adjust: false, repair: true)
+
+    assert_equal 99.0, table.first[:adj_close]
+    assert table.first[:repaired]
+    assert_equal :dividend_adjustment, table.first[:repair_actions].first[:type]
+  end
+
+  def test_history_repair_fixes_small_action_unit_mixups_before_adjusting_dividends
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { small_dividend_unit_mixup_fixture }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    table = ticker.history(period: "1mo", auto_adjust: false, repair: true)
+
+    assert_equal 1.0, table[1][:dividends]
+    assert_equal 99.0, table.first[:adj_close]
+    assert_includes table[1][:repair_actions].map { |repair| repair[:type] }, :action_currency_unit
+  end
+
+  def test_history_repair_fixes_bad_split_adjustment
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { bad_split_adjustment_fixture }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    table = ticker.history(period: "1mo", auto_adjust: false, repair: true)
+
+    assert_equal 100.0, table.first[:close]
+    assert_equal 2000.0, table.first[:volume]
+    assert table.first[:repaired]
+    assert_equal :split_adjustment, table.first[:repair_actions].first[:type]
+  end
+
   def test_actions_helpers_return_filtered_tables
     dividends = @ticker.dividends
     splits = @ticker.splits
@@ -108,5 +188,132 @@ class TickerTest < Minitest::Test
     assert @ticker.respond_to?(:income_statement)
     assert @ticker.respond_to?(:quarterly_income_statement)
     assert @ticker.respond_to?(:ttm_income_statement)
+  end
+
+  private
+
+  def unit_mixup_chart_fixture
+    chart_fixture_with(
+      open: [99.0, 11_000.0, 111.0],
+      high: [101.0, 11_200.0, 113.0],
+      low: [98.0, 10_900.0, 110.0],
+      close: [100.0, 11_100.0, 112.0],
+      adjclose: [100.0, 11_100.0, 112.0],
+      volume: [1000, 1200, 1400]
+    )
+  end
+
+  def missing_price_chart_fixture
+    chart_fixture_with(
+      open: [99.0, nil, 111.0],
+      high: [101.0, nil, 113.0],
+      low: [98.0, nil, 110.0],
+      close: [100.0, 0.0, 112.0],
+      adjclose: [100.0, 0.0, 112.0],
+      volume: [1000, 1200, 1400]
+    )
+  end
+
+  def ohlc_and_action_repair_fixture
+    chart_fixture_with(
+      open: [100.0, 102.0, 104.0],
+      high: [95.0, 103.0, 105.0],
+      low: [105.0, 101.0, 103.0],
+      close: [102.0, 102.5, 104.5],
+      adjclose: [102.0, 102.5, 104.5],
+      volume: [1000, 1200, 1400],
+      events: {
+        "dividends" => {
+          "1704067200" => { "date" => 1_704_067_200, "amount" => 100.0 }
+        }
+      }
+    )
+  end
+
+  def missing_dividend_adjustment_fixture
+    chart_fixture_with(
+      open: [99.0, 99.0, 101.0],
+      high: [101.0, 100.0, 102.0],
+      low: [98.0, 98.0, 100.0],
+      close: [100.0, 99.0, 101.0],
+      adjclose: [100.0, 99.0, 101.0],
+      volume: [1000, 1200, 1400],
+      events: {
+        "dividends" => {
+          "1704153600" => { "date" => 1_704_153_600, "amount" => 1.0 }
+        }
+      }
+    )
+  end
+
+  def small_dividend_unit_mixup_fixture
+    chart_fixture_with(
+      open: [99.0, 99.0, 101.0],
+      high: [101.0, 100.0, 102.0],
+      low: [98.0, 98.0, 100.0],
+      close: [100.0, 99.0, 101.0],
+      adjclose: [100.0, 99.0, 101.0],
+      volume: [1000, 1200, 1400],
+      events: {
+        "dividends" => {
+          "1704153600" => { "date" => 1_704_153_600, "amount" => 0.01 }
+        }
+      }
+    )
+  end
+
+  def bad_split_adjustment_fixture
+    chart_fixture_with(
+      open: [198.0, 99.0, 101.0],
+      high: [202.0, 101.0, 103.0],
+      low: [196.0, 98.0, 100.0],
+      close: [200.0, 100.0, 102.0],
+      adjclose: [200.0, 100.0, 102.0],
+      volume: [1000, 1200, 1400],
+      events: {
+        "splits" => {
+          "1704153600" => {
+            "date" => 1_704_153_600,
+            "numerator" => 2,
+            "denominator" => 1,
+            "splitRatio" => "2:1"
+          }
+        }
+      }
+    )
+  end
+
+  def chart_fixture_with(open:, high:, low:, close:, adjclose:, volume:, events: {})
+    timestamps = [1_704_067_200, 1_704_153_600, 1_704_240_000]
+    {
+      "chart" => {
+        "result" => [
+          {
+            "meta" => {
+              "symbol" => "MSFT",
+              "currency" => "USD",
+              "exchangeTimezoneName" => "America/New_York"
+            },
+            "timestamp" => timestamps,
+            "indicators" => {
+              "quote" => [
+                {
+                  "open" => open,
+                  "high" => high,
+                  "low" => low,
+                  "close" => close,
+                  "volume" => volume
+                }
+              ],
+              "adjclose" => [
+                { "adjclose" => adjclose }
+              ]
+            },
+            "events" => events
+          }
+        ],
+        "error" => nil
+      }
+    }
   end
 end

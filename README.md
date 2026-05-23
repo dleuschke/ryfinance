@@ -80,7 +80,8 @@ rows = msft.history(
   period: "1y",
   interval: "1d",
   auto_adjust: true,
-  actions: true
+  actions: true,
+  repair: true
 )
 
 rows.each do |row|
@@ -107,6 +108,12 @@ Use `start:` and `end:` for explicit ranges. Like yfinance, `end:` is exclusive.
 ```ruby
 msft.history(start: "2024-01-01", end: "2024-02-01")
 ```
+
+Pass `repair: true` to run yfinance-style price repair passes before adjustment.
+Current repairs cover 100x currency/unit mixups, zero or missing traded prices,
+bad split adjustment jumps, missing dividend adjustment, OHLC bound violations,
+and dividend/capital-gain unit mixups. Repaired tables include `:repaired` and
+`:repair_actions` columns, plus a `metadata[:repairs]` summary.
 
 ## Corporate Actions
 

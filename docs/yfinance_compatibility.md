@@ -162,6 +162,9 @@ Live streaming:
   Ruby reserves `end` in normal code positions.
 - Returned hashes use snake_case symbol keys, for example `:regular_market_price`.
 - `auto_adjust: true` adjusts OHLC values and still keeps `:adj_close` visible.
+- `repair: true` runs yfinance-style repair passes and adds `:repaired` /
+  `:repair_actions` columns plus `metadata[:repairs]`; yfinance exposes this as
+  a `Repaired?` column.
 - Time values are returned as UTC `Time` objects.
 - `threads`, `progress`, and `ignore_tz` are accepted by `download` for API
   familiarity but are currently ignored.
@@ -295,4 +298,5 @@ end
 
 The remaining yfinance features to port are:
 
-- Price repair heuristics for currency unit mixups
+- Network-assisted reconstruction for longer missing price ranges and additional
+  repair edge cases discovered through yfinance parity testing
