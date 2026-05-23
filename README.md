@@ -142,6 +142,9 @@ data.to_a.first
 
 For one ticker, `Ryfinance.download("MSFT")` returns a `Ryfinance::Table` by
 default. Pass `multi_level_index: true` if you always want a `DownloadResult`.
+Multi-ticker downloads use worker threads by default. Pass `threads: false` for
+sequential requests, an integer to cap workers, or `progress:` with a callable
+to receive per-ticker completion events.
 
 ## Quote, Analysis, and Financial Data
 

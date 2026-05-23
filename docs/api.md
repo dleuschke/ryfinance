@@ -56,10 +56,28 @@ Common options:
   auto/back adjustment
 - `timeout:` HTTP timeout in seconds
 - `proxy:` proxy URI string, `URI`, or hash
+- `threads:` `true`, `false`, or an integer worker count for multi-ticker
+  downloads
+- `progress:` `true` to print per-ticker updates, or any callable object to
+  receive structured progress events
 - `multi_level_index:` when true, always return `DownloadResult`
 
 For one ticker the default return is `Ryfinance::Table`. For multiple tickers the
 return is `Ryfinance::DownloadResult`.
+
+Progress callables receive keyword arguments:
+
+```ruby
+events = []
+Ryfinance.download(
+  "MSFT AAPL",
+  threads: 2,
+  progress: ->(**event) { events << event }
+)
+
+events.first
+#=> {:ticker=>"MSFT", :completed=>1, :total=>2, :error=>nil}
+```
 
 ### `Ryfinance.search(query, **options)`
 

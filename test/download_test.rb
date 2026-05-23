@@ -28,6 +28,36 @@ class DownloadTest < Minitest::Test
     assert result.to_a.first.key?(:"AAPL.close")
   end
 
+  def test_download_uses_threads_without_changing_ticker_order
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { |uri| chart_fixture(uri.path.split("/").last) }
+    client = Ryfinance::Client.new(transport: transport)
+
+    result = Ryfinance.download("msft aapl", client: client, threads: 2)
+
+    assert_equal ["MSFT", "AAPL"], result.tickers
+    assert_equal 2, transport.requests.size
+  end
+
+  def test_download_reports_structured_progress
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { |uri| chart_fixture(uri.path.split("/").last) }
+    client = Ryfinance::Client.new(transport: transport)
+    events = []
+
+    Ryfinance.download(
+      "msft aapl",
+      client: client,
+      threads: false,
+      progress: ->(**event) { events << event }
+    )
+
+    assert_equal ["MSFT", "AAPL"], events.map { |event| event[:ticker] }
+    assert_equal [1, 2], events.map { |event| event[:completed] }
+    assert_equal [2, 2], events.map { |event| event[:total] }
+    assert events.all? { |event| event[:error].nil? }
+  end
+
   def test_download_passes_repair_option_to_history
     transport = FakeTransport.new
     transport.route(%r{/v8/finance/chart/}) { download_repair_fixture }

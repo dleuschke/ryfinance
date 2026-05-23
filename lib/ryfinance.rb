@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "etc"
+require "thread"
+
 require_relative "ryfinance/version"
 require_relative "ryfinance/config"
 require_relative "ryfinance/errors"
@@ -38,12 +41,10 @@ module Ryfinance
     Tickers(tickers, session: session, client: client, proxy: proxy)
   end
 
-  def download(tickers, session: nil, client: nil, proxy: nil, **options)
+  def download(tickers, session: nil, client: nil, proxy: nil, threads: true, progress: false, **options)
     client ||= session || Client.new(proxy: proxy)
     symbols = Utils.normalize_tickers(tickers)
-    tables = symbols.each_with_object({}) do |symbol, result|
-      result[symbol] = Ryfinance::Ticker.new(symbol, client: client).history(proxy: proxy, **history_options(options))
-    end
+    tables = download_tables(symbols, client: client, proxy: proxy, threads: threads, progress: progress, options: options)
 
     return tables.values.first if symbols.one? && !options.fetch(:multi_level_index, false)
 
@@ -159,11 +160,83 @@ module Ryfinance
 
   def history_options(options)
     ignored = %i[
-      threads ignore_tz progress session multi_level_index group_by
+      ignore_tz session multi_level_index group_by
     ]
     options.reject { |key, _value| ignored.include?(key) }
   end
   private_class_method :history_options
+
+  def download_tables(symbols, client:, proxy:, threads:, progress:, options:)
+    tables = {}
+    errors = {}
+    completed = 0
+    reporter = progress_reporter(progress, symbols.size)
+    mutex = Mutex.new
+    jobs = Queue.new
+    symbols.each { |symbol| jobs << symbol }
+
+    worker = lambda do
+      loop do
+        symbol = jobs.pop(true)
+        begin
+          table = Ryfinance::Ticker.new(symbol, client: client).history(proxy: proxy, **history_options(options))
+          mutex.synchronize { tables[symbol] = table }
+        rescue StandardError => error
+          mutex.synchronize { errors[symbol] = error }
+        ensure
+          payload = mutex.synchronize do
+            completed += 1
+            { ticker: symbol, completed: completed, total: symbols.size, error: errors[symbol] }
+          end
+          reporter.call(payload)
+        end
+      end
+    rescue ThreadError
+      nil
+    end
+
+    count = download_thread_count(threads, symbols.size)
+    if count > 1
+      Array.new(count) { Thread.new(&worker) }.each(&:join)
+    else
+      worker.call
+    end
+
+    raise errors.values.first unless errors.empty?
+
+    symbols.each_with_object({}) { |symbol, ordered| ordered[symbol] = tables[symbol] }
+  end
+  private_class_method :download_tables
+
+  def download_thread_count(threads, total)
+    return 1 if total <= 1 || threads == false || threads.nil?
+    return [[threads.to_i, 1].max, total].min if threads.is_a?(Integer)
+
+    [[Etc.nprocessors * 2, 1].max, total].min
+  end
+  private_class_method :download_thread_count
+
+  def progress_reporter(progress, total)
+    return ->(_payload) {} if progress.nil? || progress == false
+
+    if progress.respond_to?(:call)
+      lambda do |payload|
+        begin
+          progress.call(**payload)
+        rescue ArgumentError
+          progress.call(payload[:ticker], payload[:completed], payload[:total])
+        end
+      end
+    elsif progress == true
+      lambda do |payload|
+        status = payload[:error] ? "failed" : "completed"
+        warn "RYFinance download #{status} #{payload[:completed]}/#{total}: #{payload[:ticker]}"
+      end
+    else
+      ->(_payload) {}
+    end
+  end
+  private_class_method :progress_reporter
 
   def compact_screener_params(params)
     params.reject { |_key, value| value.nil? }
