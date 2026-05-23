@@ -9,14 +9,21 @@ module Ryfinance
   Response = Struct.new(:code, :body, :headers, keyword_init: true)
 
   class NetHTTPTransport
+    def initialize
+      @cookies = {}
+      @cookie_mutex = Mutex.new
+    end
+
     def get(uri, headers:, timeout:)
       request = Net::HTTP::Get.new(uri)
+      apply_cookies(request)
       headers.each { |key, value| request[key] = value }
       perform(uri, request, timeout)
     end
 
     def post(uri, headers:, body:, timeout:)
       request = Net::HTTP::Post.new(uri)
+      apply_cookies(request)
       headers.each { |key, value| request[key] = value }
       request["Content-Type"] = "application/json"
       request.body = JSON.generate(body)
@@ -24,6 +31,13 @@ module Ryfinance
     end
 
     private
+
+    def apply_cookies(request)
+      cookie_header = @cookie_mutex.synchronize do
+        @cookies.map { |name, value| "#{name}=#{value}" }.join("; ")
+      end
+      request["Cookie"] = cookie_header unless cookie_header.empty?
+    end
 
     def perform(uri, request, timeout)
       response = Net::HTTP.start(
@@ -33,12 +47,25 @@ module Ryfinance
         open_timeout: timeout,
         read_timeout: timeout
       ) { |http| http.request(request) }
+      store_cookies(response.get_fields("Set-Cookie") || [])
 
       Response.new(
         code: response.code.to_i,
         body: response.body.to_s,
         headers: response.each_header.to_h
       )
+    end
+
+    def store_cookies(set_cookie_headers)
+      @cookie_mutex.synchronize do
+        set_cookie_headers.each do |header|
+          pair = header.to_s.split(";", 2).first
+          name, value = pair.to_s.split("=", 2)
+          next if name.to_s.empty? || value.nil?
+
+          @cookies[name] = value
+        end
+      end
     end
   end
 
@@ -51,12 +78,21 @@ module Ryfinance
       "Accept" => "application/json,text/plain,*/*",
       "User-Agent" => "Mozilla/5.0 ryfinance/#{VERSION}"
     }.freeze
+    CRUMB_URL = "https://query1.finance.yahoo.com/v1/test/getcrumb"
+    CRUMB_COOKIE_URL = "https://fc.yahoo.com"
+    CRUMB_RETRY_STATUSES = [401, 403, 422].freeze
+    CRUMB_MODES = [:auto, :always, false].freeze
 
     attr_reader :transport
 
-    def initialize(transport: nil, headers: {})
+    def initialize(transport: nil, headers: {}, crumb: :auto)
+      raise ArgumentError, "crumb must be :auto, :always, or false" unless CRUMB_MODES.include?(crumb)
+
       @transport = transport || NetHTTPTransport.new
       @headers = DEFAULT_HEADERS.merge(headers)
+      @crumb_mode = crumb
+      @crumb = nil
+      @crumb_mutex = Mutex.new
     end
 
     def chart(symbol, params:, timeout: 10)
@@ -182,7 +218,8 @@ module Ryfinance
 
     def post_json(path, base: BASE_URL, params: {}, body: {}, timeout: 10)
       uri = build_uri(path, base: base, params: params)
-      response = normalize_response(@transport.post(uri, headers: @headers, body: body, timeout: timeout), uri)
+      response = request_with_crumb_retry(:post, uri, timeout: timeout, body: body)
+      raise_for_response!(response, uri)
       JSON.parse(response.body)
     rescue JSON::ParserError => error
       raise Error, "Yahoo returned invalid JSON for #{path}: #{error.message}"
@@ -190,10 +227,91 @@ module Ryfinance
 
     def get(path, base: BASE_URL, params: {}, timeout: 10)
       uri = build_uri(path, base: base, params: params)
-      normalize_response(@transport.get(uri, headers: @headers, timeout: timeout), uri)
+      response = request_with_crumb_retry(:get, uri, timeout: timeout)
+      raise_for_response!(response, uri)
+      response
     end
 
     private
+
+    def request_with_crumb_retry(method, uri, timeout:, body: nil)
+      request_uri = uri
+      if @crumb_mode == :always
+        crumb = ensure_crumb(timeout: timeout)
+        request_uri = with_crumb(uri, crumb) if crumb
+      end
+
+      response = raw_request(method, request_uri, timeout: timeout, body: body)
+      return response unless should_retry_with_crumb?(response)
+
+      crumb = ensure_crumb(timeout: timeout, refresh: true)
+      return response unless crumb
+
+      raw_request(method, with_crumb(uri, crumb), timeout: timeout, body: body)
+    end
+
+    def raw_request(method, uri, timeout:, body: nil)
+      response =
+        case method
+        when :get
+          @transport.get(uri, headers: @headers, timeout: timeout)
+        when :post
+          @transport.post(uri, headers: @headers, body: body, timeout: timeout)
+        else
+          raise ArgumentError, "Unsupported request method: #{method}"
+        end
+
+      normalize_transport_response(response)
+    end
+
+    def should_retry_with_crumb?(response)
+      return false if @crumb_mode == false
+      return false unless CRUMB_RETRY_STATUSES.include?(response.code)
+
+      @crumb.nil? || response.body.match?(/crumb|unauthorized|forbidden/i)
+    end
+
+    def ensure_crumb(timeout:, refresh: false)
+      return nil if @crumb_mode == false
+
+      @crumb_mutex.synchronize do
+        @crumb = nil if refresh
+        return @crumb if @crumb
+
+        fetch_cookie_for_crumb(timeout: timeout)
+        crumb = fetch_crumb(timeout: timeout)
+        @crumb = crumb unless crumb.to_s.empty?
+      end
+    end
+
+    def fetch_cookie_for_crumb(timeout:)
+      uri = URI(CRUMB_COOKIE_URL)
+      raw_request(:get, uri, timeout: timeout)
+    rescue HTTPError, Error
+      nil
+    end
+
+    def fetch_crumb(timeout:)
+      uri = URI(CRUMB_URL)
+      response = raw_request(:get, uri, timeout: timeout)
+      raise RateLimitError.new("Yahoo crumb request was rate limited", status: response.code, body: response.body, uri: uri) if response.code == 429
+      return nil unless response.code.between?(200, 299)
+
+      crumb = response.body.to_s.strip
+      return nil if crumb.empty? || crumb.match?(/Too Many Requests/i)
+
+      crumb
+    end
+
+    def with_crumb(uri, crumb)
+      params = URI.decode_www_form(uri.query.to_s)
+      params.reject! { |key, _value| key == "crumb" }
+      params << ["crumb", crumb]
+
+      next_uri = uri.dup
+      next_uri.query = URI.encode_www_form(params)
+      next_uri
+    end
 
     def build_uri(path, base:, params:)
       uri = URI(path.start_with?("http") ? path : "#{base}#{path}")
@@ -212,27 +330,28 @@ module Ryfinance
       }
     end
 
-    def normalize_response(response, uri)
-      normalized =
-        if response.is_a?(Response)
-          response
-        elsif response.respond_to?(:code) && response.respond_to?(:body)
-          Response.new(code: response.code.to_i, body: response.body.to_s, headers: {})
-        else
-          Response.new(
-            code: response.fetch(:code).to_i,
-            body: response.fetch(:body).to_s,
-            headers: response.fetch(:headers, {})
-          )
-        end
+    def normalize_transport_response(response)
+      if response.is_a?(Response)
+        response
+      elsif response.respond_to?(:code) && response.respond_to?(:body)
+        Response.new(code: response.code.to_i, body: response.body.to_s, headers: {})
+      else
+        Response.new(
+          code: response.fetch(:code).to_i,
+          body: response.fetch(:body).to_s,
+          headers: response.fetch(:headers, {})
+        )
+      end
+    end
 
-      return normalized if normalized.code.between?(200, 299)
+    def raise_for_response!(response, uri)
+      return response if response.code.between?(200, 299)
 
-      error_class = normalized.code == 429 ? RateLimitError : HTTPError
+      error_class = response.code == 429 ? RateLimitError : HTTPError
       raise error_class.new(
-        "Yahoo request failed with HTTP #{normalized.code}: #{uri}",
-        status: normalized.code,
-        body: normalized.body,
+        "Yahoo request failed with HTTP #{response.code}: #{uri}",
+        status: response.code,
+        body: response.body,
         uri: uri
       )
     end

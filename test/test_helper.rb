@@ -19,14 +19,12 @@ class FakeTransport
 
   def get(uri, headers:, timeout:)
     @requests << { method: :get, uri: uri, headers: headers, timeout: timeout }
-    body = body_for(uri)
-    { code: 200, body: JSON.generate(body), headers: { "content-type" => "application/json" } }
+    response_for(body_for(uri))
   end
 
   def post(uri, headers:, body:, timeout:)
     @requests << { method: :post, uri: uri, headers: headers, body: body, timeout: timeout }
-    response_body = body_for(uri)
-    { code: 200, body: JSON.generate(response_body), headers: { "content-type" => "application/json" } }
+    response_for(body_for(uri))
   end
 
   private
@@ -36,6 +34,20 @@ class FakeTransport
     raise "No fake route for #{uri}" unless route
 
     route.last.call(uri)
+  end
+
+  def response_for(value)
+    if value.is_a?(Ryfinance::Response)
+      value
+    elsif value.is_a?(Hash) && value.key?(:code) && value.key?(:body)
+      {
+        code: value.fetch(:code),
+        body: value.fetch(:body),
+        headers: value.fetch(:headers, {})
+      }
+    else
+      { code: 200, body: JSON.generate(value), headers: { "content-type" => "application/json" } }
+    end
   end
 end
 
@@ -249,4 +261,3 @@ def industry_fixture
     }
   }
 end
-

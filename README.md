@@ -337,6 +337,26 @@ The live transport must implement:
 stream(url:, subscriptions:, heartbeat_interval:, stop_if:, on_message:, on_connection: nil)
 ```
 
+## Yahoo Cookies and Crumbs
+
+`Ryfinance::Client` uses a lazy Yahoo cookie/crumb fallback. Normal requests are
+sent without a crumb first. If Yahoo responds with an authorization-style HTTP
+error, the client fetches a Yahoo cookie, retrieves a crumb from Yahoo's test
+endpoint, and retries the request with `crumb=...`.
+
+```ruby
+client = Ryfinance::Client.new
+msft = Ryfinance::Ticker.new("MSFT", client: client)
+```
+
+The fallback can be disabled for tests or custom infrastructure:
+
+```ruby
+client = Ryfinance::Client.new(crumb: false)
+```
+
+Use `crumb: :always` to fetch and attach a crumb before the first request.
+
 ## Timezone Cache
 
 `set_tz_cache_location` stores exchange timezone metadata learned from history

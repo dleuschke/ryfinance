@@ -280,6 +280,39 @@ tickers.download(period: "1y")
 tickers.live(verbose: false) { |quote| puts quote }
 ```
 
+## `Ryfinance::Client`
+
+HTTP client for Yahoo requests. Most users do not need to instantiate it unless
+they are sharing a client, injecting a transport, or changing cookie/crumb
+behavior.
+
+```ruby
+client = Ryfinance::Client.new(
+  headers: {},
+  transport: nil,
+  crumb: :auto
+)
+
+ticker = Ryfinance::Ticker.new("MSFT", client: client)
+```
+
+`crumb:` controls Yahoo cookie/crumb behavior:
+
+- `:auto` sends normal requests first, then fetches a Yahoo cookie and crumb only
+  after an authorization-style response.
+- `:always` fetches and attaches a crumb before the first request.
+- `false` disables crumb fetching and retry behavior.
+
+Custom HTTP transports must implement:
+
+```ruby
+get(uri, headers:, timeout:)
+post(uri, headers:, body:, timeout:)
+```
+
+The default `Ryfinance::NetHTTPTransport` keeps a small in-memory cookie jar so
+Yahoo cookies learned while fetching a crumb are sent on later requests.
+
 ## `Ryfinance::WebSocket`
 
 Blocking WebSocket client for Yahoo live pricing data.

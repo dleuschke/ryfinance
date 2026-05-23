@@ -167,6 +167,9 @@ Live streaming:
   familiarity but are currently ignored.
 - Top-level `Ryfinance.Ticker(...)` and similar capitalized module methods are
   compatibility shims. Prefer `Ryfinance::Ticker.new(...)` in new Ruby code.
+- Yahoo cookie/crumb handling is lazy by default. RYFinance fetches a crumb only
+  after Yahoo responds as though one is required; yfinance generally manages
+  cookie and crumb state before making protected requests.
 - `AsyncWebSocket` follows Ruby's `async` gem conventions instead of Python's
   `async` / `await` syntax.
 - Screener query field coverage is focused on common Yahoo fields and the
@@ -293,4 +296,3 @@ end
 The remaining yfinance features to port are:
 
 - Price repair heuristics for currency unit mixups
-- Optional crumb/cookie strategies for Yahoo endpoints if Yahoo tightens access
