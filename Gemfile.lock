@@ -5,6 +5,7 @@ PATH
       async (>= 2.0, < 3)
       async-websocket (>= 0.25, < 1)
       base64 (>= 0.2, < 1)
+      console (>= 1.29, < 1.31)
       csv (>= 3.0, < 4)
       google-protobuf (>= 4.0, < 5)
       json (>= 2.0, < 3)
@@ -39,7 +40,7 @@ GEM
       protocol-websocket (~> 0.17)
     base64 (0.3.0)
     bigdecimal (4.1.2)
-    console (1.35.1)
+    console (1.30.2)
       fiber-annotation
       fiber-local (~> 1.1)
       json
@@ -58,7 +59,7 @@ GEM
     io-endpoint (0.17.2)
     io-event (1.16.0)
     io-stream (0.13.0)
-    json (2.19.4)
+    json (2.19.5)
     metrics (0.15.0)
     minitest (6.0.5)
       drb (~> 2.0)
@@ -101,7 +102,7 @@ CHECKSUMS
   async-websocket (0.30.0) sha256=55739954528ad8f87f7792d0452e1268d1ef2aa5b3719f79400a05a1a6202cdf
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
-  console (1.35.1) sha256=6d2bfdd0bc7e57830540a6c0ce3bc83fff471844db44be89a38aef9f95df296a
+  console (1.30.2) sha256=e61c7a01ab9eb5cc04f91e7322258ccf362e2c3915d36ee2e63b05f228bef66d
   csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
   drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
   fiber-annotation (0.2.0) sha256=7abfadf1d119f508867d4103bf231c0354d019cc39a5738945dec2edadaf6c03
@@ -112,7 +113,7 @@ CHECKSUMS
   io-endpoint (0.17.2) sha256=3feaf766c116b35839c11fac68b6aaadc47887bb488902a57bf8e1d288fb3338
   io-event (1.16.0) sha256=2b41d93dbb2094a477e5093f0988701274e1e07409eba62c087b0aec603e7b90
   io-stream (0.13.0) sha256=ce24bccb302bdf3ecedef05e8669a687b461621a498d83622fdcab549c9c1636
-  json (2.19.4) sha256=670a7d333fb3b18ca5b29cb255eb7bef099e40d88c02c80bd42a3f30fe5239ac
+  json (2.19.5) sha256=218a18553e4801d579ca7e0f5bc72bafd776d7397238a1fb4e74db5b0a812c59
   metrics (0.15.0) sha256=61ded5bac95118e995b1bc9ed4a5f19bc9814928a312a85b200abbdac9039072
   minitest (6.0.5) sha256=f007d7246bf4feea549502842cd7c6aba8851cdc9c90ba06de9c476c0d01155c
   net-http (0.8.0) sha256=df42c47ce9f9e95ad32a317c97c12f945bc1af365288837ea4ff259876ecb46d
@@ -131,4 +132,4 @@ CHECKSUMS
   uri (1.1.1) sha256=379fa58d27ffb1387eaada68c749d1426738bd0f654d812fcc07e7568f5c57c6
 
 BUNDLED WITH
-  4.0.2
+   2.6.9

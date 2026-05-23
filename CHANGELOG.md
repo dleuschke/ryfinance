@@ -13,6 +13,7 @@ All notable changes to RYFinance are documented here.
 - Added earnings calendar dates through `Ticker#earnings_dates`.
 - Added typed instrument lookup through `Ryfinance::Lookup`.
 - Added valuation snapshot data through `Ticker#valuation`.
+- Fixed CI dependency resolution on Ruby 3.1 by constraining `console`.
 
 ## 0.3.0 - 2026-05-23
 
