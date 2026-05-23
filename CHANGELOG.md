@@ -6,6 +6,7 @@ All notable changes to RYFinance are documented here.
 
 - Added CI and release hygiene checks.
 - Added an opt-in live Yahoo WebSocket smoke test.
+- Opted GitHub Actions into Node 24 for JavaScript actions.
 - Added lazy Yahoo cookie/crumb retry handling in the HTTP client.
 - Added opt-in history price repair passes through `repair: true`.
 - Added opt-in GET response caching and transient HTTP retry controls.
