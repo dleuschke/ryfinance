@@ -87,10 +87,18 @@ Options:
 - `timeout:`
 - `raise_errors:`
 
-### `Ryfinance.market(region: "US")`
+### `Ryfinance.market(market = nil, region: "US", session: nil, client: nil)`
 
 Returns a `Ryfinance::Market` object. Call `#summary` to fetch market summary
-rows.
+rows and `#status` to fetch current market status.
+
+```ruby
+market = Ryfinance.market("EUROPE")
+market.status
+market.summary
+```
+
+Use `Ryfinance.Market("US")` as a yfinance-shaped constructor shim.
 
 ### `Ryfinance.calendars(start: nil, end_date: nil, session: nil, client: nil)`
 
@@ -378,6 +386,43 @@ tickers.history(period: "5d")
 tickers.download(period: "1y")
 tickers.live(verbose: false) { |quote| puts quote }
 ```
+
+## `Ryfinance::Market`
+
+Market status and summary rows for Yahoo market groups.
+
+```ruby
+market = Ryfinance::Market.new("US")
+market.status
+market.summary
+```
+
+Supported market keys:
+
+- `US`
+- `GB`
+- `ASIA`
+- `EUROPE`
+- `RATES`
+- `COMMODITIES`
+- `CURRENCIES`
+- `CRYPTOCURRENCIES`
+
+`status` returns a snake_case hash. Common keys include:
+
+- `:status`
+- `:market_state`
+- `:open`
+- `:close`
+- `:timezone`
+- `:tz`
+
+`open` and `close` are Ruby `Time` objects. `timezone` is Yahoo's timezone hash,
+and `tz` is the timezone short name when available.
+
+`summary` returns a `Ryfinance::Table` of Yahoo market summary rows. The first
+request for either `status` or `summary` fetches both endpoints and caches the
+parsed values on the `Ryfinance::Market` instance.
 
 ## `Ryfinance::Calendars`
 

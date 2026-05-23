@@ -53,6 +53,7 @@ Core constructor and module shims:
 - `Ryfinance.Ticker`
 - `Ryfinance.Tickers`
 - `Ryfinance.Lookup`
+- `Ryfinance.Market`
 - `Ryfinance.Calendars`
 - `Ryfinance.Sector`
 - `Ryfinance.Industry`
@@ -65,6 +66,13 @@ Core constructor and module shims:
 - `FundQuery`
 - `ETFQuery`
 - `set_tz_cache_location`
+
+Market:
+
+- `Market#status`
+- `Market#summary`
+- `Ryfinance.Market`
+- `Ryfinance.market`
 
 Calendars:
 
@@ -205,6 +213,10 @@ Live streaming:
   `limit:`, `offset:`, and `as_dict:`.
 - `Lookup` methods return `Ryfinance::Table` objects with `:symbol` as an
   ordinary column instead of a Pandas index.
+- `Market#summary` returns a `Ryfinance::Table` instead of yfinance's
+  exchange-keyed dictionary. `Market#status` returns a snake_case hash with
+  Ruby `Time` objects for `:open` and `:close`; `:tz` is the timezone short name
+  rather than Python's timezone object.
 - `Ticker#valuation` returns a current `Ryfinance::Table` snapshot from Yahoo's
   structured quote-summary data. yfinance's `get_valuation_measures` scrapes the
   key-statistics page and may expose historical columns when Yahoo renders them.

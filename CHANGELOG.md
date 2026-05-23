@@ -11,6 +11,7 @@ All notable changes to RYFinance are documented here.
 - Added opt-in GET response caching and transient HTTP retry controls.
 - Added ETF and mutual fund data through `Ticker#funds_data`.
 - Added earnings calendar dates through `Ticker#earnings_dates`.
+- Added market status through `Ryfinance::Market#status`.
 - Added market-wide Yahoo calendars through `Ryfinance::Calendars`.
 - Added typed instrument lookup through `Ryfinance::Lookup`.
 - Added valuation snapshot data through `Ticker#valuation`.

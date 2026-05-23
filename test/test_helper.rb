@@ -379,6 +379,60 @@ def screener_fixture
   }
 end
 
+def market_summary_fixture
+  {
+    "marketSummaryResponse" => {
+      "result" => [
+        {
+          "exchange" => "SNP",
+          "shortName" => "S&P 500",
+          "regularMarketPrice" => { "raw" => 5320.25, "fmt" => "5,320.25" },
+          "regularMarketChange" => { "raw" => 12.5, "fmt" => "12.50" },
+          "regularMarketChangePercent" => { "raw" => 0.24, "fmt" => "0.24%" }
+        },
+        {
+          "exchange" => "DJI",
+          "shortName" => "Dow 30",
+          "regularMarketPrice" => { "raw" => 39_110.75, "fmt" => "39,110.75" },
+          "regularMarketChange" => { "raw" => -20.0, "fmt" => "-20.00" },
+          "regularMarketChangePercent" => { "raw" => -0.05, "fmt" => "-0.05%" }
+        }
+      ],
+      "error" => nil
+    }
+  }
+end
+
+def market_status_fixture
+  {
+    "finance" => {
+      "marketTimes" => [
+        {
+          "marketTime" => [
+            {
+              "id" => "us",
+              "name" => "U.S. markets",
+              "status" => "open",
+              "marketState" => "REGULAR",
+              "open" => "2026-05-22T09:30:00-04:00",
+              "close" => "2026-05-22T16:00:00-04:00",
+              "time" => "2026-05-22T12:30:00-04:00",
+              "timezone" => [
+                {
+                  "short" => "EDT",
+                  "long" => "Eastern Daylight Time",
+                  "gmtoffset" => -14_400_000
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "error" => nil
+    }
+  }
+end
+
 def lookup_fixture(symbol: "AAPL", quote_type: "EQUITY")
   {
     "finance" => {

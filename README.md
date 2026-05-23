@@ -234,7 +234,8 @@ lookup.stock
 lookup.etf
 lookup.get_cryptocurrency(count: 10)
 
-market = Ryfinance.market(region: "US")
+market = Ryfinance.market("US")
+market.status
 market.summary
 
 calendars = Ryfinance.calendars(start: "2026-04-01", end: "2026-04-30")
@@ -247,6 +248,11 @@ calendars.splits_calendar
 `Ryfinance::Lookup` returns typed instrument results as `Ryfinance::Table`
 objects. Available categories are `all`, `stock`, `mutualfund`, `etf`, `index`,
 `future`, `currency`, and `cryptocurrency`.
+
+`Ryfinance::Market#status` returns a snake_case hash with current market state,
+open/close `Time` values, and timezone details. `#summary` returns a
+`Ryfinance::Table` of market index rows. Yahoo supports `US`, `GB`, `ASIA`,
+`EUROPE`, `RATES`, `COMMODITIES`, `CURRENCIES`, and `CRYPTOCURRENCIES`.
 
 `Ryfinance::Calendars` returns market-wide Yahoo calendar tables for earnings,
 IPOs, economic events, and stock splits. Date-like values are normalized to UTC

@@ -62,8 +62,12 @@ module Ryfinance
     Ryfinance::Lookup.new(query, session: session, client: client, **options)
   end
 
-  def market(region: "US", session: nil, client: nil)
-    Market.new(region: region, session: session, client: client)
+  def market(market = nil, region: "US", session: nil, client: nil, timeout: 30)
+    Market(market || region, session: session, client: client, timeout: timeout)
+  end
+
+  def Market(market = "US", session: nil, client: nil, timeout: 30)
+    Ryfinance::Market.new(market, session: session, client: client, timeout: timeout)
   end
 
   def calendars(start: nil, end_date: nil, session: nil, client: nil, **options)

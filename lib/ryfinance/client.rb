@@ -186,13 +186,42 @@ module Ryfinance
       Array(data.dig("finance", "result", 0, "documents"))
     end
 
-    def market_summary(region: "US", timeout: 10)
-      get_json(
+    def market_summary(region: nil, market: nil, timeout: 10)
+      selected_market = market || region || "US"
+      data = get_json(
         "/v6/finance/quote/marketSummary",
         base: QUERY1_URL,
-        params: { region: region },
+        params: {
+          fields: "shortName,regularMarketPrice,regularMarketChange,regularMarketChangePercent",
+          formatted: false,
+          lang: "en-US",
+          market: selected_market
+        },
         timeout: timeout
-      ).dig("marketSummaryResponse", "result") || []
+      )
+      error = data.dig("marketSummaryResponse", "error")
+      raise_yahoo_error(error) if error
+
+      data.dig("marketSummaryResponse", "result") || []
+    end
+
+    def market_status(region: nil, market: nil, timeout: 10)
+      selected_market = market || region || "US"
+      data = get_json(
+        "/v6/finance/markettime",
+        base: QUERY1_URL,
+        params: {
+          formatted: true,
+          key: "finance",
+          lang: "en-US",
+          market: selected_market
+        },
+        timeout: timeout
+      )
+      error = data.dig("finance", "error")
+      raise_yahoo_error(error) if error
+
+      data.dig("finance", "marketTimes", 0, "marketTime", 0) || {}
     end
 
     def timeseries(symbol, types:, period1:, period2:, timeout: 10)
