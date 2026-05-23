@@ -11,6 +11,7 @@ All notable changes to RYFinance are documented here.
 - Added opt-in GET response caching and transient HTTP retry controls.
 - Added HTTP proxy support through `Ryfinance::Client`, `download`, and `Ticker#history`.
 - Added threaded multi-ticker downloads and structured progress callbacks.
+- Added `download(ignore_tz: true)` calendar-date normalization for daily data.
 - Added yfinance-style multi-ticker download failure capture with `raise_errors:`.
 - Added yfinance-style `Ticker#history(raise_errors:)` failure handling.
 - Added per-ticker error aggregation to `Tickers#history`.

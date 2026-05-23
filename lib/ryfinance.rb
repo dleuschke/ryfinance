@@ -218,6 +218,7 @@ module Ryfinance
             raise_errors: true,
             **history_options(options)
           )
+          table = normalize_download_timezone(table, options)
           mutex.synchronize { tables[symbol] = table }
         rescue StandardError => error
           mutex.synchronize do
@@ -249,6 +250,36 @@ module Ryfinance
     [ordered, errors]
   end
   private_class_method :download_tables
+
+  def normalize_download_timezone(table, options)
+    return table unless options[:ignore_tz]
+    return table if intraday_interval?(options.fetch(:interval, "1d"))
+
+    rows = table.to_a.map do |row|
+      row = row.dup
+      %i[date datetime].each do |column|
+        row[column] = timezone_naive_date(row[column]) if row.key?(column)
+      end
+      row
+    end
+    Table.new(rows, columns: table.columns, metadata: table.metadata.merge(ignore_tz: true))
+  end
+  private_class_method :normalize_download_timezone
+
+  def intraday_interval?(interval)
+    interval.to_s.end_with?("m", "h")
+  end
+  private_class_method :intraday_interval?
+
+  def timezone_naive_date(value)
+    case value
+    when Time, DateTime
+      Date.new(value.year, value.month, value.day)
+    else
+      value
+    end
+  end
+  private_class_method :timezone_naive_date
 
   def empty_download_table(symbol, error)
     Table.new(

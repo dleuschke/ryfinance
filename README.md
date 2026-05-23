@@ -152,6 +152,9 @@ Multi-ticker downloads use worker threads by default. Pass `threads: false` for
 sequential requests, an integer to cap workers, or `progress:` with a callable
 to receive per-ticker completion events.
 
+Pass `ignore_tz: true` for daily and larger interval downloads when you want
+row dates normalized to `Date` objects instead of explicit UTC `Time` values.
+
 Like yfinance, a failed ticker does not abort a batch by default. Failed symbols
 get an empty table with `metadata[:error]`, and multi-ticker results expose
 `errors`, `failed_tickers`, and `successful_tickers`:

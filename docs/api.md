@@ -62,6 +62,8 @@ Common options:
   receive structured progress events
 - `raise_errors:` when true, raise the first captured per-ticker error after the
   batch finishes
+- `ignore_tz:` when true, daily and larger interval downloads use `Date` values
+  instead of UTC `Time` values for row dates
 - `multi_level_index:` when true, always return `DownloadResult`
 
 For one ticker the default return is `Ryfinance::Table`. For multiple tickers the
@@ -88,6 +90,14 @@ Use `raise_errors: true` for strict behavior:
 ```ruby
 Ryfinance.download("MSFT BADTICKER", raise_errors: true)
 # raises Ryfinance::NotFoundError after the batch completes
+```
+
+Use `ignore_tz: true` when combining daily or larger interval data across
+exchanges and you want rows keyed by calendar date:
+
+```ruby
+Ryfinance.download("MSFT VOD.L", ignore_tz: true).to_a.first[:date]
+#=> #<Date: 2024-...>
 ```
 
 ### `Ryfinance.search(query, **options)`

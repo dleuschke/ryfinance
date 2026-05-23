@@ -125,6 +125,39 @@ class DownloadTest < Minitest::Test
     assert result[1][:repaired]
   end
 
+  def test_download_ignore_tz_converts_daily_dates_to_date_objects
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { chart_fixture }
+    client = Ryfinance::Client.new(transport: transport)
+
+    result = Ryfinance.download("msft", client: client, ignore_tz: true)
+
+    assert_instance_of Date, result.first[:date]
+    assert_equal Date.new(2024, 1, 1), result.first[:date]
+    assert_equal true, result.metadata[:ignore_tz]
+  end
+
+  def test_download_ignore_tz_keeps_intraday_times_explicit
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { chart_fixture }
+    client = Ryfinance::Client.new(transport: transport)
+
+    result = Ryfinance.download("msft", client: client, interval: "1h", ignore_tz: true)
+
+    assert_instance_of Time, result.first[:date]
+  end
+
+  def test_download_ignore_tz_combines_multi_ticker_by_date
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { |uri| chart_fixture(uri.path.split("/").last) }
+    client = Ryfinance::Client.new(transport: transport)
+
+    result = Ryfinance.download("msft aapl", client: client, ignore_tz: true)
+
+    assert_equal Date.new(2024, 1, 1), result.to_a.first[:date]
+    assert_equal Date.new(2024, 1, 1), result["MSFT"].first[:date]
+  end
+
   def test_download_accepts_proxy_keyword
     transport = FakeTransport.new
     transport.route(%r{/v8/finance/chart/}) { chart_fixture }
