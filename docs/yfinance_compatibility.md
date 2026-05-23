@@ -201,6 +201,9 @@ Live streaming:
 - `repair: true` runs yfinance-style repair passes and adds `:repaired` /
   `:repair_actions` columns plus `metadata[:repairs]`; yfinance exposes this as
   a `Repaired?` column.
+- `Ticker#history` follows yfinance's non-raising default for Yahoo-side
+  failures and returns an empty table with `metadata[:error]`. Pass
+  `raise_errors: true` for strict behavior.
 - Time values are returned as UTC `Time` objects.
 - `download` honors `threads:` for concurrent multi-ticker requests and
   `progress:` for per-ticker completion events. Like yfinance, batch downloads

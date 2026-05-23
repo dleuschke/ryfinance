@@ -213,7 +213,11 @@ module Ryfinance
       loop do
         symbol = jobs.pop(true)
         begin
-          table = Ryfinance::Ticker.new(symbol, client: client).history(proxy: proxy, **history_options(options))
+          table = Ryfinance::Ticker.new(symbol, client: client).history(
+            proxy: proxy,
+            raise_errors: true,
+            **history_options(options)
+          )
           mutex.synchronize { tables[symbol] = table }
         rescue StandardError => error
           mutex.synchronize do

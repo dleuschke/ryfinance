@@ -121,7 +121,23 @@ module Ryfinance
       "#<#{self.class.name} #{@ticker}>"
     end
 
-    def history(period: "1mo", interval: "1d", start: nil, end_date: nil, actions: true, auto_adjust: true, back_adjust: false, prepost: false, rounding: false, keepna: false, repair: false, timeout: 10, proxy: nil, **options)
+    def history(
+      period: "1mo",
+      interval: "1d",
+      start: nil,
+      end_date: nil,
+      actions: true,
+      auto_adjust: true,
+      back_adjust: false,
+      prepost: false,
+      rounding: false,
+      keepna: false,
+      repair: false,
+      timeout: 10,
+      proxy: nil,
+      raise_errors: false,
+      **options
+    )
       finish = options.key?(:end) ? options[:end] : end_date
       range = options.fetch(:range, period)
       client = client_for_proxy(proxy)
@@ -142,19 +158,27 @@ module Ryfinance
         params[:range] = range
       end
 
-      result = client.chart(@ticker, params: params, timeout: timeout)
-      @last_history_metadata = Utils.deep_symbolize(Utils.unwrap_value(result.fetch("meta", {})))
-      Ryfinance.timezone_cache.set(@ticker, @last_history_metadata[:exchange_timezone_name])
+      begin
+        result = client.chart(@ticker, params: params, timeout: timeout)
+        @last_history_metadata = Utils.deep_symbolize(Utils.unwrap_value(result.fetch("meta", {})))
+        Ryfinance.timezone_cache.set(@ticker, @last_history_metadata[:exchange_timezone_name])
 
-      table_from_chart(
-        result,
-        actions: actions,
-        auto_adjust: auto_adjust,
-        back_adjust: back_adjust,
-        rounding: rounding,
-        keepna: keepna,
-        repair: repair
-      )
+        table_from_chart(
+          result,
+          actions: actions,
+          auto_adjust: auto_adjust,
+          back_adjust: back_adjust,
+          rounding: rounding,
+          keepna: keepna,
+          repair: repair
+        )
+      rescue RateLimitError
+        raise
+      rescue StandardError => error
+        raise if raise_errors
+
+        failed_history_table(error, actions: actions, repair: repair)
+      end
     end
 
     def get_history_metadata
@@ -669,6 +693,22 @@ module Ryfinance
       metadata[:repairs] = repair_report if repair
       @last_history_metadata = metadata
       Table.new(rows, columns: columns, metadata: metadata)
+    end
+
+    def failed_history_table(error, actions:, repair:)
+      metadata = {
+        symbol: @ticker,
+        error: error,
+        error_class: error.class.name,
+        error_message: error.message
+      }
+      metadata[:repairs] = [] if repair
+      @last_history_metadata = metadata
+
+      columns = %i[date open high low close volume adj_close]
+      columns += %i[dividends stock_splits capital_gains] if actions
+      columns += %i[repaired repair_actions] if repair
+      Table.new([], columns: columns, metadata: metadata)
     end
 
     def repair_history_rows(rows)

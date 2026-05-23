@@ -219,6 +219,7 @@ ticker.history(period: "1mo", interval: "1d")
 ticker.history(start: "2024-01-01", end: "2024-02-01")
 ticker.history(actions: true, auto_adjust: false)
 ticker.history(repair: true)
+ticker.history(raise_errors: true)
 ticker.history(proxy: "http://proxy.example:8080")
 ```
 
@@ -241,6 +242,11 @@ When `repair: true`, `metadata[:repairs]` contains a per-row summary of repair
 actions. Repair passes currently cover 100x currency/unit mixups, zero or
 missing traded prices, bad split adjustment jumps, missing dividend adjustment,
 OHLC bound violations, and dividend/capital-gain unit mixups.
+
+By default, Yahoo-side history errors return an empty table with
+`metadata[:error]`, `metadata[:error_class]`, and `metadata[:error_message]`.
+Pass `raise_errors: true` to raise the original exception instead. Local
+validation errors, such as invalid periods or intervals, still raise immediately.
 
 ### Corporate Actions
 

@@ -110,6 +110,9 @@ Use `start:` and `end:` for explicit ranges. Like yfinance, `end:` is exclusive.
 msft.history(start: "2024-01-01", end: "2024-02-01")
 ```
 
+History fetches return an empty table with `metadata[:error]` when Yahoo rejects
+the symbol or range. Pass `raise_errors: true` for strict exception behavior.
+
 Pass `repair: true` to run yfinance-style price repair passes before adjustment.
 Current repairs cover 100x currency/unit mixups, zero or missing traded prices,
 bad split adjustment jumps, missing dividend adjustment, OHLC bound violations,

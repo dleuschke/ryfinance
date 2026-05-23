@@ -58,6 +58,39 @@ class TickerTest < Minitest::Test
     assert_equal "http://proxy.example:8080", @transport.requests.last[:proxy]
   end
 
+  def test_history_returns_empty_table_on_yahoo_error_by_default
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { history_error_fixture }
+    ticker = Ryfinance::Ticker.new("fail", client: Ryfinance::Client.new(transport: transport))
+
+    table = ticker.history(period: "1mo")
+
+    assert_instance_of Ryfinance::Table, table
+    assert_empty table
+    assert_equal "FAIL", table.metadata[:symbol]
+    assert_instance_of Ryfinance::NotFoundError, table.metadata[:error]
+    assert_equal "Ryfinance::NotFoundError", table.metadata[:error_class]
+    assert_match(/No data found/, table.metadata[:error_message])
+    assert_same table.metadata, ticker.history_metadata
+  end
+
+  def test_history_can_raise_yahoo_errors
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { history_error_fixture }
+    ticker = Ryfinance::Ticker.new("fail", client: Ryfinance::Client.new(transport: transport))
+
+    error = assert_raises(Ryfinance::NotFoundError) do
+      ticker.history(period: "1mo", raise_errors: true)
+    end
+
+    assert_match(/No data found/, error.message)
+  end
+
+  def test_history_still_raises_local_validation_errors
+    assert_raises(ArgumentError) { @ticker.history(period: "900y") }
+    assert_raises(ArgumentError) { @ticker.history(interval: "17m") }
+  end
+
   def test_history_repair_fixes_100x_currency_unit_mixups
     transport = FakeTransport.new
     transport.route(%r{/v8/finance/chart/}) { unit_mixup_chart_fixture }
@@ -308,6 +341,18 @@ class TickerTest < Minitest::Test
   end
 
   private
+
+  def history_error_fixture
+    {
+      "chart" => {
+        "result" => nil,
+        "error" => {
+          "code" => "Not Found",
+          "description" => "No data found for FAIL"
+        }
+      }
+    }
+  end
 
   def unit_mixup_chart_fixture
     chart_fixture_with(
