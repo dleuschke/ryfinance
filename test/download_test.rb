@@ -39,6 +39,16 @@ class DownloadTest < Minitest::Test
     assert result[1][:repaired]
   end
 
+  def test_download_accepts_proxy_keyword
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { chart_fixture }
+    client = Ryfinance::Client.new(transport: transport)
+
+    Ryfinance.download("msft", client: client, proxy: "http://proxy.example:8080")
+
+    assert_equal "http://proxy.example:8080", transport.requests.last[:proxy]
+  end
+
   private
 
   def download_repair_fixture

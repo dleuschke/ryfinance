@@ -4,9 +4,9 @@ module Ryfinance
   class Tickers
     attr_reader :symbols, :tickers
 
-    def initialize(tickers, session: nil, client: nil)
+    def initialize(tickers, session: nil, client: nil, proxy: nil)
       @symbols = Utils.normalize_tickers(tickers)
-      @client = client || session || Client.new
+      @client = client || session || Client.new(proxy: proxy)
       @tickers = @symbols.each_with_object({}) do |symbol, result|
         result[symbol] = Ticker.new(symbol, client: @client)
       end

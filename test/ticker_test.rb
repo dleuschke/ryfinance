@@ -51,6 +51,12 @@ class TickerTest < Minitest::Test
     assert_equal "1704240000", query["period2"]
   end
 
+  def test_history_accepts_proxy_keyword
+    @ticker.history(period: "1mo", proxy: "http://proxy.example:8080")
+
+    assert_equal "http://proxy.example:8080", @transport.requests.last[:proxy]
+  end
+
   def test_history_repair_fixes_100x_currency_unit_mixups
     transport = FakeTransport.new
     transport.route(%r{/v8/finance/chart/}) { unit_mixup_chart_fixture }

@@ -22,27 +22,27 @@ require_relative "ryfinance/live"
 module Ryfinance
   module_function
 
-  def Ticker(ticker, session: nil, client: nil)
-    Ryfinance::Ticker.new(ticker, session: session, client: client)
+  def Ticker(ticker, session: nil, client: nil, proxy: nil)
+    Ryfinance::Ticker.new(ticker, session: session, client: client, proxy: proxy)
   end
 
-  def Tickers(tickers, session: nil, client: nil)
-    Ryfinance::Tickers.new(tickers, session: session, client: client)
+  def Tickers(tickers, session: nil, client: nil, proxy: nil)
+    Ryfinance::Tickers.new(tickers, session: session, client: client, proxy: proxy)
   end
 
-  def ticker(ticker, session: nil, client: nil)
-    Ticker(ticker, session: session, client: client)
+  def ticker(ticker, session: nil, client: nil, proxy: nil)
+    Ticker(ticker, session: session, client: client, proxy: proxy)
   end
 
-  def tickers(tickers, session: nil, client: nil)
-    Tickers(tickers, session: session, client: client)
+  def tickers(tickers, session: nil, client: nil, proxy: nil)
+    Tickers(tickers, session: session, client: client, proxy: proxy)
   end
 
-  def download(tickers, session: nil, client: nil, **options)
-    client ||= session || Client.new
+  def download(tickers, session: nil, client: nil, proxy: nil, **options)
+    client ||= session || Client.new(proxy: proxy)
     symbols = Utils.normalize_tickers(tickers)
     tables = symbols.each_with_object({}) do |symbol, result|
-      result[symbol] = Ryfinance::Ticker.new(symbol, client: client).history(**history_options(options))
+      result[symbol] = Ryfinance::Ticker.new(symbol, client: client).history(proxy: proxy, **history_options(options))
     end
 
     return tables.values.first if symbols.one? && !options.fetch(:multi_level_index, false)

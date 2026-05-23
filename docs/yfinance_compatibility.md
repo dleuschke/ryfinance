@@ -234,6 +234,8 @@ Live streaming:
 - GET response caching is exposed through `Ryfinance::Client` instead of
   accepting a Python `requests_cache` session.
 - `Ryfinance::Client` retries transient HTTP 429 and 5xx responses by default.
+- Proxy support is exposed through `Ryfinance::Client.new(proxy:)`, plus
+  yfinance-shaped `proxy:` keywords on `download` and `Ticker#history`.
 - `AsyncWebSocket` follows Ruby's `async` gem conventions instead of Python's
   `async` / `await` syntax.
 - Screener query field coverage is focused on common Yahoo fields and the

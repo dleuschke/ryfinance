@@ -10,28 +10,69 @@ module Ryfinance
   Response = Struct.new(:code, :body, :headers, keyword_init: true)
 
   class NetHTTPTransport
-    def initialize
+    attr_reader :proxy
+
+    def initialize(proxy: nil)
       @cookies = {}
       @cookie_mutex = Mutex.new
+      @proxy = normalize_proxy(proxy)
     end
 
-    def get(uri, headers:, timeout:)
+    def get(uri, headers:, timeout:, proxy: nil)
       request = Net::HTTP::Get.new(uri)
       apply_cookies(request)
       headers.each { |key, value| request[key] = value }
-      perform(uri, request, timeout)
+      perform(uri, request, timeout, proxy: proxy)
     end
 
-    def post(uri, headers:, body:, timeout:)
+    def post(uri, headers:, body:, timeout:, proxy: nil)
       request = Net::HTTP::Post.new(uri)
       apply_cookies(request)
       headers.each { |key, value| request[key] = value }
       request["Content-Type"] = "application/json"
       request.body = JSON.generate(body)
-      perform(uri, request, timeout)
+      perform(uri, request, timeout, proxy: proxy)
     end
 
     private
+
+    def normalize_proxy(proxy)
+      return nil if proxy.nil? || proxy == false || proxy.to_s.empty?
+
+      case proxy
+      when URI
+        proxy_hash(proxy)
+      when Hash
+        host = proxy[:host] || proxy["host"]
+        raise ArgumentError, "proxy host is required" if host.to_s.empty?
+
+        {
+          scheme: (proxy[:scheme] || proxy["scheme"] || "http").to_s,
+          host: host.to_s,
+          port: Integer(proxy[:port] || proxy["port"] || 80),
+          user: proxy[:user] || proxy["user"],
+          password: proxy[:password] || proxy["password"]
+        }.freeze
+      else
+        text = proxy.to_s
+        uri = URI(text.match?(%r{\A[A-Za-z][A-Za-z0-9+\-.]*://}) ? text : "http://#{text}")
+        proxy_hash(uri)
+      end
+    rescue URI::InvalidURIError
+      raise ArgumentError, "proxy must be a URI string, URI object, or hash"
+    end
+
+    def proxy_hash(uri)
+      raise ArgumentError, "proxy host is required" if uri.host.to_s.empty?
+
+      {
+        scheme: uri.scheme || "http",
+        host: uri.host,
+        port: uri.port || (uri.scheme == "https" ? 443 : 80),
+        user: uri.user && CGI.unescape(uri.user),
+        password: uri.password && CGI.unescape(uri.password)
+      }.freeze
+    end
 
     def apply_cookies(request)
       cookie_header = @cookie_mutex.synchronize do
@@ -40,8 +81,20 @@ module Ryfinance
       request["Cookie"] = cookie_header unless cookie_header.empty?
     end
 
-    def perform(uri, request, timeout)
-      response = Net::HTTP.start(
+    def perform(uri, request, timeout, proxy:)
+      selected_proxy = normalize_proxy(proxy) || @proxy
+      http_class =
+        if selected_proxy
+          Net::HTTP::Proxy(
+            selected_proxy[:host],
+            selected_proxy[:port],
+            selected_proxy[:user],
+            selected_proxy[:password]
+          )
+        else
+          Net::HTTP
+        end
+      response = http_class.start(
         uri.host,
         uri.port,
         use_ssl: uri.scheme == "https",
@@ -85,9 +138,9 @@ module Ryfinance
     CRUMB_MODES = [:auto, :always, false].freeze
     DEFAULT_RETRY_STATUSES = [429, 500, 502, 503, 504].freeze
 
-    attr_reader :transport, :cache
+    attr_reader :transport, :cache, :proxy
 
-    def initialize(transport: nil, headers: {}, crumb: :auto, cache: nil, cache_ttl: nil, retries: 1, retry_backoff: 0.5, retry_max_sleep: 5, retry_statuses: DEFAULT_RETRY_STATUSES)
+    def initialize(transport: nil, headers: {}, crumb: :auto, cache: nil, cache_ttl: nil, retries: 1, retry_backoff: 0.5, retry_max_sleep: 5, retry_statuses: DEFAULT_RETRY_STATUSES, proxy: nil)
       raise ArgumentError, "crumb must be :auto, :always, or false" unless CRUMB_MODES.include?(crumb)
       raise ArgumentError, "retries must be zero or greater" if retries.to_i.negative?
 
@@ -102,6 +155,24 @@ module Ryfinance
       @retry_backoff = retry_backoff.to_f
       @retry_max_sleep = retry_max_sleep.to_f
       @retry_statuses = retry_statuses.map(&:to_i)
+      @proxy = proxy
+    end
+
+    def with_proxy(proxy)
+      return self if proxy.nil? || proxy == false || proxy.to_s.empty? || proxy == @proxy
+
+      self.class.new(
+        transport: @transport,
+        headers: @headers,
+        crumb: @crumb_mode,
+        cache: @cache,
+        cache_ttl: @cache_ttl,
+        retries: @retries,
+        retry_backoff: @retry_backoff,
+        retry_max_sleep: @retry_max_sleep,
+        retry_statuses: @retry_statuses,
+        proxy: proxy
+      )
     end
 
     def chart(symbol, params:, timeout: 10)
@@ -388,14 +459,28 @@ module Ryfinance
       response =
         case method
         when :get
-          @transport.get(uri, headers: @headers, timeout: timeout)
+          call_transport(:get, uri, headers: @headers, timeout: timeout)
         when :post
-          @transport.post(uri, headers: @headers, body: body, timeout: timeout)
+          call_transport(:post, uri, headers: @headers, body: body, timeout: timeout)
         else
           raise ArgumentError, "Unsupported request method: #{method}"
         end
 
       normalize_transport_response(response)
+    end
+
+    def call_transport(method, uri, **keywords)
+      if transport_accepts_proxy?(method)
+        @transport.public_send(method, uri, **keywords, proxy: @proxy)
+      else
+        @transport.public_send(method, uri, **keywords)
+      end
+    end
+
+    def transport_accepts_proxy?(method)
+      @transport.method(method).parameters.any? do |type, name|
+        type == :keyrest || (name == :proxy && [:key, :keyreq].include?(type))
+      end
     end
 
     def retryable_response?(response)

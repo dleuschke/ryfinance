@@ -9,6 +9,7 @@ All notable changes to RYFinance are documented here.
 - Added lazy Yahoo cookie/crumb retry handling in the HTTP client.
 - Added opt-in history price repair passes through `repair: true`.
 - Added opt-in GET response caching and transient HTTP retry controls.
+- Added HTTP proxy support through `Ryfinance::Client`, `download`, and `Ticker#history`.
 - Added ETF and mutual fund data through `Ticker#funds_data`.
 - Added earnings calendar dates through `Ticker#earnings_dates`.
 - Added market status through `Ryfinance::Market#status`.

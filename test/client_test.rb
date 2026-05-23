@@ -3,6 +3,31 @@
 require_relative "test_helper"
 
 class ClientTest < Minitest::Test
+  def test_net_http_transport_accepts_proxy_uri
+    transport = Ryfinance::NetHTTPTransport.new(proxy: "http://user:pass@proxy.example:8080")
+
+    assert_equal(
+      {
+        scheme: "http",
+        host: "proxy.example",
+        port: 8080,
+        user: "user",
+        password: "pass"
+      },
+      transport.proxy
+    )
+  end
+
+  def test_client_forwards_proxy_to_transport
+    transport = FakeTransport.new
+    transport.route(%r{/v7/finance/quote}) { quote_fixture }
+    client = Ryfinance::Client.new(transport: transport, proxy: "http://proxy.example:8080")
+
+    client.quote("MSFT")
+
+    assert_equal "http://proxy.example:8080", transport.requests.last[:proxy]
+  end
+
   def test_chart_raises_yahoo_error
     transport = FakeTransport.new
     transport.route(%r{/v8/finance/chart/NOPE}) do

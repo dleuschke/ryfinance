@@ -55,6 +55,7 @@ Common options:
 - `repair:` run price, action, split, and adjustment repair passes before
   auto/back adjustment
 - `timeout:` HTTP timeout in seconds
+- `proxy:` proxy URI string, `URI`, or hash
 - `multi_level_index:` when true, always return `DownloadResult`
 
 For one ticker the default return is `Ryfinance::Table`. For multiple tickers the
@@ -189,6 +190,7 @@ ticker.history(period: "1mo", interval: "1d")
 ticker.history(start: "2024-01-01", end: "2024-02-01")
 ticker.history(actions: true, auto_adjust: false)
 ticker.history(repair: true)
+ticker.history(proxy: "http://proxy.example:8080")
 ```
 
 Returns a `Ryfinance::Table` with columns:
@@ -492,7 +494,8 @@ client = Ryfinance::Client.new(
   cache_ttl: nil,
   retries: 1,
   retry_backoff: 0.5,
-  retry_max_sleep: 5
+  retry_max_sleep: 5,
+  proxy: nil
 )
 
 ticker = Ryfinance::Ticker.new("MSFT", client: client)
@@ -518,11 +521,20 @@ client.clear_cache
 client retries HTTP 429, 500, 502, 503, and 504 once, uses exponential
 `retry_backoff:`, caps sleep at `retry_max_sleep:`, and honors `Retry-After`.
 
+`proxy:` routes requests through an HTTP proxy. Pass a URI string, `URI` object,
+or hash with `:host`, `:port`, optional `:user`, and optional `:password`.
+
+```ruby
+client = Ryfinance::Client.new(proxy: "http://user:pass@proxy.example:8080")
+Ryfinance.download("MSFT", proxy: "http://proxy.example:8080")
+Ryfinance::Ticker.new("MSFT").history(proxy: "http://proxy.example:8080")
+```
+
 Custom HTTP transports must implement:
 
 ```ruby
-get(uri, headers:, timeout:)
-post(uri, headers:, body:, timeout:)
+get(uri, headers:, timeout:, proxy: nil)
+post(uri, headers:, body:, timeout:, proxy: nil)
 ```
 
 The default `Ryfinance::NetHTTPTransport` keeps a small in-memory cookie jar so

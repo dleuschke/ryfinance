@@ -17,13 +17,13 @@ class FakeTransport
     @routes << [pattern, block || proc { body }]
   end
 
-  def get(uri, headers:, timeout:)
-    @requests << { method: :get, uri: uri, headers: headers, timeout: timeout }
+  def get(uri, headers:, timeout:, proxy: nil)
+    @requests << { method: :get, uri: uri, headers: headers, timeout: timeout, proxy: proxy }
     response_for(body_for(uri))
   end
 
-  def post(uri, headers:, body:, timeout:)
-    @requests << { method: :post, uri: uri, headers: headers, body: body, timeout: timeout }
+  def post(uri, headers:, body:, timeout:, proxy: nil)
+    @requests << { method: :post, uri: uri, headers: headers, body: body, timeout: timeout, proxy: proxy }
     response_for(body_for(uri))
   end
 

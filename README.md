@@ -391,12 +391,31 @@ msft = Ryfinance::Ticker.new("MSFT", client: client)
 The transport must implement:
 
 ```ruby
-get(uri, headers:, timeout:)
-post(uri, headers:, body:, timeout:)
+get(uri, headers:, timeout:, proxy: nil)
+post(uri, headers:, body:, timeout:, proxy: nil)
 ```
 
 and return either `Ryfinance::Response` or a hash with `:code`, `:body`, and
 optional `:headers`.
+
+## Proxies
+
+Configure a proxy on the shared client when you want all Yahoo requests to use
+it:
+
+```ruby
+client = Ryfinance::Client.new(proxy: "http://user:pass@proxy.example:8080")
+msft = Ryfinance::Ticker.new("MSFT", client: client)
+msft.history
+```
+
+For yfinance-style ports, `proxy:` is also accepted by `download` and
+`Ticker#history`:
+
+```ruby
+Ryfinance.download("MSFT AAPL", proxy: "http://proxy.example:8080")
+Ryfinance::Ticker.new("MSFT").history(proxy: "http://proxy.example:8080")
+```
 
 Streaming tests and advanced integrations can inject a live transport:
 

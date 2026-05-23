@@ -97,11 +97,11 @@ module Ryfinance
 
     attr_reader :ticker
 
-    def initialize(ticker, session: nil, client: nil)
+    def initialize(ticker, session: nil, client: nil, proxy: nil)
       @ticker = normalize_ticker(ticker)
       raise InvalidTickerError, "Empty ticker name" if @ticker.empty?
 
-      @client = client || session || Client.new
+      @client = client || session || Client.new(proxy: proxy)
       @quote_summary_cache = {}
       @fast_quote = nil
       @last_history_metadata = {}
@@ -115,9 +115,10 @@ module Ryfinance
       "#<#{self.class.name} #{@ticker}>"
     end
 
-    def history(period: "1mo", interval: "1d", start: nil, end_date: nil, actions: true, auto_adjust: true, back_adjust: false, prepost: false, rounding: false, keepna: false, repair: false, timeout: 10, **options)
+    def history(period: "1mo", interval: "1d", start: nil, end_date: nil, actions: true, auto_adjust: true, back_adjust: false, prepost: false, rounding: false, keepna: false, repair: false, timeout: 10, proxy: nil, **options)
       finish = options.key?(:end) ? options[:end] : end_date
       range = options.fetch(:range, period)
+      client = client_for_proxy(proxy)
 
       validate_period!(range) unless start || finish
       validate_interval!(interval)
@@ -135,7 +136,7 @@ module Ryfinance
         params[:range] = range
       end
 
-      result = @client.chart(@ticker, params: params, timeout: timeout)
+      result = client.chart(@ticker, params: params, timeout: timeout)
       @last_history_metadata = Utils.deep_symbolize(Utils.unwrap_value(result.fetch("meta", {})))
       Ryfinance.timezone_cache.set(@ticker, @last_history_metadata[:exchange_timezone_name])
 
@@ -565,6 +566,13 @@ module Ryfinance
     end
 
     private
+
+    def client_for_proxy(proxy)
+      return @client if proxy.nil? || proxy == false || proxy.to_s.empty?
+      return @client.with_proxy(proxy) if @client.respond_to?(:with_proxy)
+
+      @client
+    end
 
     def normalize_ticker(value)
       if value.is_a?(Array)
