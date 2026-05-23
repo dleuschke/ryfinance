@@ -8,7 +8,7 @@ RYFinance is a Ruby gem for Yahoo Finance data with an API shaped after Python's
 - Quote info, fast quote data, recommendations, analyst targets, and calendar data
 - Historical OHLCV rows with dividends, splits, and capital gains
 - Options expiration dates and option chains
-- Search, screener, market, sector, and industry helpers
+- WebSocket streaming plus search, screener, market, sector, and industry helpers
 
 RYFinance is not affiliated with Yahoo, Yahoo Finance, or the Python `yfinance`
 project. Yahoo Finance is intended for personal, research, and educational use;
@@ -182,6 +182,50 @@ market = Ryfinance.market(region: "US")
 market.summary
 ```
 
+## Live Streaming
+
+Yahoo's live stream uses WebSocket frames containing base64-encoded protobuf
+quotes. RYFinance decodes those frames into snake_case Ruby hashes.
+
+```ruby
+ws = Ryfinance::WebSocket.new(verbose: false)
+ws.subscribe(["AAPL", "BTC-USD"])
+
+begin
+  ws.listen do |quote|
+    puts "#{quote[:id]} #{quote[:price]} #{quote[:change_percent]}"
+  end
+ensure
+  ws.close
+end
+```
+
+Ticker helpers subscribe for you:
+
+```ruby
+Ryfinance.Ticker("MSFT").live(verbose: false) do |quote|
+  puts quote
+end
+```
+
+For applications already using the `async` gem:
+
+```ruby
+require "async"
+
+Async do
+  ws = Ryfinance::AsyncWebSocket.new(verbose: false)
+  ws.subscribe("MSFT")
+  ws.listen { |quote| puts quote[:price] }
+ensure
+  ws&.close
+end
+```
+
+`subscribe` and `unsubscribe` seed the next connection and, when a stream is
+already open, send the control message immediately. The client periodically
+resends the active subscription list as a heartbeat.
+
 ## Screeners
 
 Run Yahoo's predefined screens:
@@ -260,6 +304,18 @@ post(uri, headers:, body:, timeout:)
 
 and return either `Ryfinance::Response` or a hash with `:code`, `:body`, and
 optional `:headers`.
+
+Streaming tests and advanced integrations can inject a live transport:
+
+```ruby
+ws = Ryfinance::WebSocket.new(transport: my_live_transport)
+```
+
+The live transport must implement:
+
+```ruby
+stream(url:, subscriptions:, heartbeat_interval:, stop_if:, on_message:, on_connection: nil)
+```
 
 ## Timezone Cache
 

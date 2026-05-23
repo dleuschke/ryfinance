@@ -25,8 +25,13 @@ module Ryfinance
       Ryfinance.download(@symbols, client: @client, **options)
     end
 
-    def live(*)
-      raise UnsupportedFeatureError, "WebSocket streaming is not implemented yet"
+    def live(message_handler = nil, verbose: true, websocket: nil, **options, &block)
+      handler = block || message_handler
+      socket = websocket || WebSocket.new(verbose: verbose, **options)
+      socket.subscribe(@symbols)
+      return socket unless handler
+
+      socket.listen(handler)
     end
   end
 end

@@ -13,6 +13,7 @@ require_relative "ryfinance/search"
 require_relative "ryfinance/market"
 require_relative "ryfinance/screener"
 require_relative "ryfinance/domain"
+require_relative "ryfinance/live"
 
 module Ryfinance
   module_function
@@ -55,6 +56,14 @@ module Ryfinance
 
   def market(region: "US", session: nil, client: nil)
     Market.new(region: region, session: session, client: client)
+  end
+
+  def WebSocket(**options)
+    Ryfinance::WebSocket.new(**options)
+  end
+
+  def AsyncWebSocket(**options)
+    Ryfinance::AsyncWebSocket.new(**options)
   end
 
   def sector(key, session: nil, client: nil)

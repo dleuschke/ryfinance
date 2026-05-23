@@ -56,6 +56,8 @@ Core:
 - `ETFQuery`
 - `screen`
 - `set_tz_cache_location`
+- `WebSocket`
+- `AsyncWebSocket`
 
 Ticker stock data:
 
@@ -141,6 +143,21 @@ Screeners:
 - `ETFQuery`
 - `screen`
 
+Live streaming:
+
+- `WebSocket#subscribe`
+- `WebSocket#unsubscribe`
+- `WebSocket#listen`
+- `WebSocket#close`
+- `AsyncWebSocket#subscribe`
+- `AsyncWebSocket#unsubscribe`
+- `AsyncWebSocket#listen`
+- `AsyncWebSocket#close`
+- `Ryfinance.WebSocket`
+- `Ryfinance.AsyncWebSocket`
+- `Ticker#live`
+- `Tickers#live`
+
 ## Differences From Python yfinance
 
 - Ruby keyword arguments use `start:` and `end:`. `end:` is accepted even though
@@ -150,7 +167,8 @@ Screeners:
 - Time values are returned as UTC `Time` objects.
 - `threads`, `progress`, and `ignore_tz` are accepted by `download` for API
   familiarity but are currently ignored.
-- WebSocket streaming is not implemented.
+- `AsyncWebSocket` follows Ruby's `async` gem conventions instead of Python's
+  `async` / `await` syntax.
 - Screener query field coverage is focused on common Yahoo fields and the
   predefined screens; custom field names can still be sent through query objects.
 - `isin` does not scrape third party websites. It only returns an ISIN if Yahoo
@@ -247,10 +265,32 @@ technology = Ryfinance.Sector("technology")
 technology.industries
 ```
 
+### Live Streaming
+
+Python:
+
+```python
+with yf.WebSocket() as ws:
+    ws.subscribe(["AAPL", "BTC-USD"])
+    ws.listen(lambda quote: print(quote))
+```
+
+Ruby:
+
+```ruby
+ws = Ryfinance::WebSocket.new
+ws.subscribe(["AAPL", "BTC-USD"])
+
+begin
+  ws.listen { |quote| puts quote }
+ensure
+  ws.close
+end
+```
+
 ## Compatibility Roadmap
 
 The remaining yfinance features to port are:
 
-- WebSocket and AsyncWebSocket streaming
 - Price repair heuristics for currency unit mixups
 - Optional crumb/cookie strategies for Yahoo endpoints if Yahoo tightens access

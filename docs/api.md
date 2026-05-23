@@ -1,6 +1,6 @@
 # API Reference
 
-This document lists the public API provided by RYFinance 0.2.0.
+This document lists the public API provided by RYFinance 0.3.0.
 
 ## Module Functions
 
@@ -242,6 +242,16 @@ ticker.isin
 `isin` returns Yahoo-provided ISIN data when present. It does not scrape third
 party websites.
 
+### Live Streaming
+
+```ruby
+ticker.live(verbose: false) { |quote| puts quote }
+socket = ticker.live(verbose: false)
+```
+
+When no handler is given, `live` returns a configured `Ryfinance::WebSocket`
+with the ticker already subscribed.
+
 ## `Ryfinance::Tickers`
 
 ```ruby
@@ -249,6 +259,70 @@ tickers = Ryfinance::Tickers.new("MSFT AAPL")
 tickers["MSFT"].info
 tickers.history(period: "5d")
 tickers.download(period: "1y")
+tickers.live(verbose: false) { |quote| puts quote }
+```
+
+## `Ryfinance::WebSocket`
+
+Blocking WebSocket client for Yahoo live pricing data.
+
+```ruby
+ws = Ryfinance::WebSocket.new(
+  url: Ryfinance::AsyncWebSocket::DEFAULT_URL,
+  verbose: true,
+  heartbeat_interval: 15,
+  reconnect: true,
+  reconnect_delay: 3,
+  raise_handler_errors: false
+)
+
+ws.subscribe(["AAPL", "BTC-USD"])
+ws.unsubscribe("AAPL")
+ws.listen { |quote| puts quote[:price] }
+ws.close
+```
+
+`subscribe` and `unsubscribe` can be called before `listen` or while the stream
+is active. Active streams receive the control message immediately.
+
+Decoded quote hashes use snake_case symbol keys. Common keys include:
+
+- `:id`
+- `:price`
+- `:time`
+- `:currency`
+- `:exchange`
+- `:quote_type`
+- `:market_hours`
+- `:change_percent`
+- `:day_volume`
+- `:day_high`
+- `:day_low`
+- `:change`
+- `:short_name`
+
+Top-level construction is also available:
+
+```ruby
+ws = Ryfinance.WebSocket(verbose: false)
+```
+
+## `Ryfinance::AsyncWebSocket`
+
+Async-compatible WebSocket client for applications already using the `async`
+gem. It has the same constructor and methods as `Ryfinance::WebSocket`, but
+`listen` runs in the current async task instead of creating a top-level reactor.
+
+```ruby
+require "async"
+
+Async do
+  ws = Ryfinance.AsyncWebSocket(verbose: false)
+  ws.subscribe("MSFT")
+  ws.listen { |quote| puts quote[:price] }
+ensure
+  ws&.close
+end
 ```
 
 ## `Ryfinance::EquityQuery`, `FundQuery`, and `ETFQuery`
