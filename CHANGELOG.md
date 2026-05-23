@@ -12,6 +12,7 @@ All notable changes to RYFinance are documented here.
 - Added ETF and mutual fund data through `Ticker#funds_data`.
 - Added earnings calendar dates through `Ticker#earnings_dates`.
 - Added typed instrument lookup through `Ryfinance::Lookup`.
+- Added valuation snapshot data through `Ticker#valuation`.
 
 ## 0.3.0 - 2026-05-23
 

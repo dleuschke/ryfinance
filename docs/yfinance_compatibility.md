@@ -79,6 +79,7 @@ Ticker quote data:
 
 - `get_info` / `info`
 - `get_fast_info` / `fast_info`
+- `get_valuation_measures` / `valuation`
 - `get_news` / `news`
 - `get_isin` / `isin`
 - `get_earnings_dates` / `earnings_dates`
@@ -194,6 +195,9 @@ Live streaming:
   `limit:`, `offset:`, and `as_dict:`.
 - `Lookup` methods return `Ryfinance::Table` objects with `:symbol` as an
   ordinary column instead of a Pandas index.
+- `Ticker#valuation` returns a current `Ryfinance::Table` snapshot from Yahoo's
+  structured quote-summary data. yfinance's `get_valuation_measures` scrapes the
+  key-statistics page and may expose historical columns when Yahoo renders them.
 - Yahoo cookie/crumb handling is lazy by default. RYFinance fetches a crumb only
   after Yahoo responds as though one is required; yfinance generally manages
   cookie and crumb state before making protected requests.
@@ -294,6 +298,23 @@ Ruby:
 msft = Ryfinance::Ticker.new("MSFT")
 dates = msft.earnings_dates(limit: 12, offset: 0)
 dates.first[:earnings_date]
+```
+
+### Valuation Measures
+
+Python:
+
+```python
+msft = yf.Ticker("MSFT")
+valuation = msft.get_valuation_measures()
+```
+
+Ruby:
+
+```ruby
+msft = Ryfinance::Ticker.new("MSFT")
+valuation = msft.valuation
+valuation[:value]
 ```
 
 ### Lookup

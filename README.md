@@ -148,6 +148,7 @@ default. Pass `multi_level_index: true` if you always want a `DownloadResult`.
 ```ruby
 msft.info
 msft.fast_info
+msft.valuation
 msft.calendar
 msft.earnings_dates
 msft.sec_filings
@@ -165,6 +166,10 @@ msft.sustainability
 `earnings_dates(limit: 12, offset: 0)` returns a `Ryfinance::Table` with
 `:earnings_date`, EPS, surprise, event type, and timezone columns. It returns
 `nil` when Yahoo has no earnings calendar rows for the ticker.
+
+`valuation` returns a `Ryfinance::Table` of current valuation metrics such as
+market cap, enterprise value, PE ratios, PEG ratio, price/book, and
+enterprise-value multiples.
 
 Financial statement helpers:
 

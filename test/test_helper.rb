@@ -126,14 +126,34 @@ def quote_summary_fixture
         {
           "price" => {
             "longName" => "Microsoft Corporation",
-            "regularMarketPrice" => { "raw" => 420.25, "fmt" => "420.25" }
+            "regularMarketPrice" => { "raw" => 420.25, "fmt" => "420.25" },
+            "marketCap" => { "raw" => 3_000_000_000 }
+          },
+          "summaryDetail" => {
+            "trailingPE" => { "raw" => 31.2 },
+            "forwardPE" => { "raw" => 28.4 },
+            "beta" => { "raw" => 0.91 }
+          },
+          "defaultKeyStatistics" => {
+            "enterpriseValue" => { "raw" => 3_100_000_000 },
+            "pegRatio" => { "raw" => 2.2 },
+            "priceToSalesTrailing12Months" => { "raw" => 12.1 },
+            "priceToBook" => { "raw" => 9.3 },
+            "enterpriseToRevenue" => { "raw" => 12.5 },
+            "enterpriseToEbitda" => { "raw" => 22.0 },
+            "trailingEps" => { "raw" => 11.8 },
+            "forwardEps" => { "raw" => 14.2 }
           },
           "financialData" => {
             "targetMeanPrice" => { "raw" => 450.0, "fmt" => "450.00" },
             "targetLowPrice" => { "raw" => 390.0, "fmt" => "390.00" },
             "targetHighPrice" => { "raw" => 510.0, "fmt" => "510.00" },
             "targetMedianPrice" => { "raw" => 455.0, "fmt" => "455.00" },
-            "currentPrice" => { "raw" => 420.25, "fmt" => "420.25" }
+            "currentPrice" => { "raw" => 420.25, "fmt" => "420.25" },
+            "ebitda" => { "raw" => 140_000_000 },
+            "totalDebt" => { "raw" => 70_000_000 },
+            "totalCash" => { "raw" => 80_000_000 },
+            "revenuePerShare" => { "raw" => 32.5 }
           },
           "calendarEvents" => {
             "earnings" => {

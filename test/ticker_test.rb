@@ -151,6 +151,28 @@ class TickerTest < Minitest::Test
     assert_equal 418.0, fast_info[:previous_close]
   end
 
+  def test_valuation_measures_return_snapshot_table
+    valuation = @ticker.valuation
+
+    assert_instance_of Ryfinance::Table, valuation
+    assert_equal %i[metric value source], valuation.columns
+    assert_equal 16, valuation.size
+    assert_equal "Market Cap", valuation.first[:metric]
+    assert_equal 3_000_000_000, valuation.first[:value]
+    assert_equal :price, valuation.first[:source]
+
+    enterprise_to_ebitda = valuation.find { |row| row[:metric] == "Enterprise/EBITDA" }
+    assert_equal 22.0, enterprise_to_ebitda[:value]
+    assert_equal :default_key_statistics, enterprise_to_ebitda[:source]
+  end
+
+  def test_valuation_measures_can_return_row_hashes
+    rows = @ticker.get_valuation_measures(as_dict: true)
+
+    assert_instance_of Array, rows
+    assert_equal "Market Cap", rows.first[:metric]
+  end
+
   def test_analyst_price_targets_and_recommendations
     targets = @ticker.analyst_price_targets
     recommendations = @ticker.recommendations

@@ -203,6 +203,7 @@ ticker.actions
 ```ruby
 ticker.info
 ticker.fast_info
+ticker.valuation
 ticker.calendar
 ticker.earnings_dates
 ticker.sec_filings
@@ -212,6 +213,18 @@ ticker.funds_data
 
 `info` returns a flattened hash combining Yahoo quote summary modules and quote
 data. Keys are snake_case symbols.
+
+`valuation` / `get_valuation_measures` returns a `Ryfinance::Table` with:
+
+- `metric`
+- `value`
+- `source`
+
+The table is a current snapshot from structured Yahoo quote-summary modules and
+includes metrics such as market cap, enterprise value, trailing and forward PE,
+PEG ratio, price/sales, price/book, enterprise-value multiples, beta, EPS,
+EBITDA, debt, cash, and revenue per share. Pass `as_dict: true` to return an
+array of row hashes.
 
 `earnings_dates(limit: 12, offset: 0)` returns a `Ryfinance::Table` with:
 
@@ -606,6 +619,7 @@ compatibility. New Ruby code should prefer the canonical names above.
 | `get_actions` | `actions` |
 | `get_info` | `info` |
 | `get_fast_info` | `fast_info` |
+| `get_valuation_measures`, `valuation_measures` | `valuation` |
 | `get_calendar` | `calendar` |
 | `get_earnings_dates` | `earnings_dates` |
 | `get_sec_filings` | `sec_filings` |

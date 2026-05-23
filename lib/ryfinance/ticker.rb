@@ -22,6 +22,26 @@ module Ryfinance
       institutionOwnership fundOwnership insiderHolders insiderTransactions
     ].freeze
 
+    VALUATION_MODULES = %w[defaultKeyStatistics financialData price summaryDetail].freeze
+    VALUATION_METRICS = [
+      [:price, :market_cap, "Market Cap"],
+      [:default_key_statistics, :enterprise_value, "Enterprise Value"],
+      [:summary_detail, :trailing_pe, "Trailing P/E"],
+      [:summary_detail, :forward_pe, "Forward P/E"],
+      [:default_key_statistics, :peg_ratio, "PEG Ratio"],
+      [:default_key_statistics, :price_to_sales_trailing12_months, "Price/Sales (ttm)"],
+      [:default_key_statistics, :price_to_book, "Price/Book"],
+      [:default_key_statistics, :enterprise_to_revenue, "Enterprise/Revenue"],
+      [:default_key_statistics, :enterprise_to_ebitda, "Enterprise/EBITDA"],
+      [:summary_detail, :beta, "Beta"],
+      [:default_key_statistics, :trailing_eps, "Trailing EPS"],
+      [:default_key_statistics, :forward_eps, "Forward EPS"],
+      [:financial_data, :ebitda, "EBITDA"],
+      [:financial_data, :total_debt, "Total Debt"],
+      [:financial_data, :total_cash, "Total Cash"],
+      [:financial_data, :revenue_per_share, "Revenue Per Share"]
+    ].freeze
+
     MIC_TO_YAHOO_SUFFIX = {
       "XNYS" => "",
       "XNAS" => "",
@@ -228,6 +248,20 @@ module Ryfinance
       info
     end
     alias fast_info get_fast_info
+
+    def get_valuation_measures(timeout: 10, as_dict: false)
+      modules = valuation_modules(timeout: timeout)
+      rows = VALUATION_METRICS.filter_map do |module_name, field_name, metric|
+        value = modules.dig(module_name, field_name)
+        next if value.nil?
+
+        { metric: metric, value: value, source: module_name }
+      end
+      table = Table.new(rows, columns: %i[metric value source])
+      as_dict ? table.to_a : table
+    end
+    alias valuation get_valuation_measures
+    alias valuation_measures get_valuation_measures
 
     def get_calendar(timeout: 10)
       Utils.deep_symbolize(Utils.unwrap_value(raw_module("calendarEvents", timeout: timeout)))
@@ -941,6 +975,12 @@ module Ryfinance
       end
       table = Table.new(rows)
       as_dict ? table.to_a : table
+    end
+
+    def valuation_modules(timeout:)
+      quote_summary(VALUATION_MODULES, timeout: timeout).each_with_object({}) do |(module_name, module_data), result|
+        result[Utils.symbolize_key(module_name)] = Utils.deep_symbolize(Utils.unwrap_value(module_data || {}))
+      end
     end
 
     def earnings_dates_table(limit:, offset:, timeout:)
