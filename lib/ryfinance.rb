@@ -14,6 +14,7 @@ require_relative "ryfinance/tickers"
 require_relative "ryfinance/search"
 require_relative "ryfinance/lookup"
 require_relative "ryfinance/market"
+require_relative "ryfinance/calendars"
 require_relative "ryfinance/screener"
 require_relative "ryfinance/domain"
 require_relative "ryfinance/live"
@@ -63,6 +64,14 @@ module Ryfinance
 
   def market(region: "US", session: nil, client: nil)
     Market.new(region: region, session: session, client: client)
+  end
+
+  def calendars(start: nil, end_date: nil, session: nil, client: nil, **options)
+    Calendars.new(start: start, end_date: end_date, session: session, client: client, **options)
+  end
+
+  def Calendars(start: nil, end_date: nil, session: nil, client: nil, **options)
+    Ryfinance::Calendars.new(start: start, end_date: end_date, session: session, client: client, **options)
   end
 
   def WebSocket(**options)

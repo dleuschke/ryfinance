@@ -293,6 +293,37 @@ def earnings_dates_fixture(rows: nil)
   }
 end
 
+def calendar_fixture(rows: nil, columns: nil)
+  {
+    "finance" => {
+      "result" => [
+        {
+          "documents" => [
+            {
+              "columns" => columns || [
+                { "label" => "Symbol" },
+                { "label" => "Company Name" },
+                { "label" => "Market Cap (Intraday)" },
+                { "label" => "Event Name" },
+                { "label" => "Event Start Date" },
+                { "label" => "Event Start Date", "type" => "STRING" },
+                { "label" => "EPS Estimate" },
+                { "label" => "Reported EPS" },
+                { "label" => "Surprise (%)" }
+              ],
+              "rows" => rows || [
+                ["MSFT", "Microsoft Corporation", 3_000_000_000_000, "Q3 2026 Earnings", "2026-04-23T20:00:00Z", "After Market Close", 3.2, 3.5, 9.4],
+                ["AAPL", "Apple Inc.", 2_800_000_000_000, "Q2 2026 Earnings", "2026-04-30T20:00:00Z", "After Market Close", 0.0, 0.0, 0.0]
+              ]
+            }
+          ]
+        }
+      ],
+      "error" => nil
+    }
+  }
+end
+
 def options_fixture
   {
     "optionChain" => {

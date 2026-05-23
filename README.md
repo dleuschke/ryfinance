@@ -13,7 +13,7 @@ It focuses on the workflows most users reach for first:
 - Historical OHLCV rows with dividends, splits, and capital gains
 - Options expiration dates and option chains
 - ETF and mutual fund holdings, allocations, and fund operations
-- WebSocket streaming plus search, screener, market, sector, and industry helpers
+- WebSocket streaming plus search, screener, calendar, market, sector, and industry helpers
 
 RYFinance is not affiliated with Yahoo, Yahoo Finance, or the Python `yfinance`
 project. Yahoo Finance is intended for personal, research, and educational use;
@@ -236,11 +236,21 @@ lookup.get_cryptocurrency(count: 10)
 
 market = Ryfinance.market(region: "US")
 market.summary
+
+calendars = Ryfinance.calendars(start: "2026-04-01", end: "2026-04-30")
+calendars.earnings_calendar
+calendars.ipo_info_calendar
+calendars.economic_events_calendar
+calendars.splits_calendar
 ```
 
 `Ryfinance::Lookup` returns typed instrument results as `Ryfinance::Table`
 objects. Available categories are `all`, `stock`, `mutualfund`, `etf`, `index`,
 `future`, `currency`, and `cryptocurrency`.
+
+`Ryfinance::Calendars` returns market-wide Yahoo calendar tables for earnings,
+IPOs, economic events, and stock splits. Date-like values are normalized to UTC
+`Time` objects and columns use snake_case symbol keys.
 
 ## Live Streaming
 

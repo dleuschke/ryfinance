@@ -238,6 +238,28 @@ module Ryfinance
       data.dig("finance", "result", 0, "documents", 0) || {}
     end
 
+    def calendar(calendar_type:, query:, include_fields:, sort_field:, limit:, offset:, timeout: 10)
+      data = post_json(
+        "/v1/finance/visualization",
+        base: QUERY1_URL,
+        params: { lang: "en-US", region: "US" },
+        body: {
+          "sortType" => "DESC",
+          "entityIdType" => calendar_type,
+          "sortField" => sort_field,
+          "includeFields" => include_fields,
+          "size" => [Integer(limit), 100].min,
+          "offset" => Integer(offset),
+          "query" => query
+        },
+        timeout: timeout
+      )
+      error = data.dig("finance", "error")
+      raise_yahoo_error(error) if error
+
+      data.dig("finance", "result", 0, "documents", 0) || {}
+    end
+
     def screen_predefined(query, params: {}, timeout: 10)
       data = get_json(
         "/v1/finance/screener/predefined/saved",

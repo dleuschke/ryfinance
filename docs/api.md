@@ -92,6 +92,20 @@ Options:
 Returns a `Ryfinance::Market` object. Call `#summary` to fetch market summary
 rows.
 
+### `Ryfinance.calendars(start: nil, end_date: nil, session: nil, client: nil)`
+
+Returns a `Ryfinance::Calendars` object for market-wide event calendars.
+
+```ruby
+calendars = Ryfinance.calendars(start: "2026-04-01", end: "2026-04-30")
+calendars.earnings_calendar
+calendars.ipo_info_calendar
+calendars.economic_events_calendar
+calendars.splits_calendar
+```
+
+Pass `end:` as a compatibility keyword when porting yfinance-shaped code.
+
 ### `Ryfinance.sector(key, session: nil, client: nil)`
 
 Returns a `Ryfinance::Sector`.
@@ -363,6 +377,52 @@ tickers["MSFT"].info
 tickers.history(period: "5d")
 tickers.download(period: "1y")
 tickers.live(verbose: false) { |quote| puts quote }
+```
+
+## `Ryfinance::Calendars`
+
+Market-wide Yahoo calendars. Constructor dates default to today through seven
+days later.
+
+```ruby
+calendars = Ryfinance::Calendars.new(start: "2026-04-01", end: "2026-04-30")
+```
+
+Available methods:
+
+- `earnings_calendar` / `get_earnings_calendar`
+- `ipo_info_calendar` / `get_ipo_info_calendar`
+- `economic_events_calendar` / `get_economic_events_calendar`
+- `splits_calendar` / `get_splits_calendar`
+
+All methods return `Ryfinance::Table` objects with snake_case symbol columns.
+Date-like values are normalized to UTC `Time` objects.
+
+Common options:
+
+- `start:` override the constructor start date
+- `end:` or `end_date:` override the constructor end date
+- `limit:` number of rows to request; Yahoo caps a single request at 100
+- `offset:` zero-based result offset
+- `force:` bypass the per-instance cache
+- `timeout:` HTTP timeout in seconds
+
+`get_earnings_calendar` also accepts:
+
+- `market_cap:` minimum intraday market cap
+- `filter_most_active:` when true, intersect the query with Yahoo's most-active
+  stock screen for the first page
+
+```ruby
+earnings = calendars.get_earnings_calendar(
+  market_cap: 10_000_000_000,
+  filter_most_active: false,
+  limit: 25
+)
+
+earnings.each do |row|
+  puts "#{row[:symbol]} #{row[:event_start_date]} #{row[:eps_estimate]}"
+end
 ```
 
 ## `Ryfinance::Client`

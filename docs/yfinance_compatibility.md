@@ -53,6 +53,7 @@ Core constructor and module shims:
 - `Ryfinance.Ticker`
 - `Ryfinance.Tickers`
 - `Ryfinance.Lookup`
+- `Ryfinance.Calendars`
 - `Ryfinance.Sector`
 - `Ryfinance.Industry`
 - `Ryfinance.WebSocket`
@@ -64,6 +65,15 @@ Core constructor and module shims:
 - `FundQuery`
 - `ETFQuery`
 - `set_tz_cache_location`
+
+Calendars:
+
+- `Calendars#get_earnings_calendar` / `Calendars#earnings_calendar`
+- `Calendars#get_ipo_info_calendar` / `Calendars#ipo_info_calendar`
+- `Calendars#get_economic_events_calendar` / `Calendars#economic_events_calendar`
+- `Calendars#get_splits_calendar` / `Calendars#splits_calendar`
+- `Ryfinance.Calendars`
+- `Ryfinance.calendars`
 
 Ticker stock data:
 
@@ -198,6 +208,9 @@ Live streaming:
 - `Ticker#valuation` returns a current `Ryfinance::Table` snapshot from Yahoo's
   structured quote-summary data. yfinance's `get_valuation_measures` scrapes the
   key-statistics page and may expose historical columns when Yahoo renders them.
+- `Calendars` returns `Ryfinance::Table` objects instead of Pandas DataFrames.
+  It accepts `end:` as a compatibility keyword, while `end_date:` is also
+  available for Ruby code that avoids reserved-word-shaped names.
 - Yahoo cookie/crumb handling is lazy by default. RYFinance fetches a crumb only
   after Yahoo responds as though one is required; yfinance generally manages
   cookie and crumb state before making protected requests.
