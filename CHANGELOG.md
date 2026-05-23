@@ -20,6 +20,7 @@ All notable changes to RYFinance are documented here.
 - Added earnings calendar dates through `Ticker#earnings_dates`.
 - Added market status through `Ryfinance::Market#status`.
 - Added market-wide Yahoo calendars through `Ryfinance::Calendars`.
+- Expanded opt-in live smoke coverage for chart, quote, and search endpoints.
 - Expanded screener query metadata and validation.
 - Documented open-ended screener enum fields and exposed restricted field helpers.
 - Added shares outstanding through `Ticker#shares`.
