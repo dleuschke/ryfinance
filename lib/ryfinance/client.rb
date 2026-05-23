@@ -235,6 +235,29 @@ module Ryfinance
       )
     end
 
+    def news(symbol, query_ref:, count:, timeout: 10)
+      data = post_json(
+        "/xhr/ncp",
+        base: ROOT_URL,
+        params: {
+          queryRef: query_ref,
+          serviceKey: "ncp_fin"
+        },
+        body: {
+          "serviceConfig" => {
+            "snippetCount" => count,
+            "s" => [symbol]
+          }
+        },
+        timeout: timeout
+      )
+
+      Array(data.dig("data", "tickerStream", "stream")).reject do |article|
+        ad = article["ad"] || article[:ad]
+        ad && !(ad.respond_to?(:empty?) && ad.empty?)
+      end
+    end
+
     def lookup(query, type:, count:, timeout: 30)
       data = get_json(
         "/v1/finance/lookup",

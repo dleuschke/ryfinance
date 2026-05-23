@@ -250,11 +250,16 @@ ticker.calendar
 ticker.earnings_dates
 ticker.sec_filings
 ticker.news(count: 10)
+ticker.news(tab: "press releases", count: 5)
 ticker.funds_data
 ```
 
 `info` returns a flattened hash combining Yahoo quote summary modules and quote
 data. Keys are snake_case symbols.
+
+`news` / `get_news` fetches Yahoo's ticker news stream. Supported tabs are
+`"news"`, `"all"`, and `"press releases"`. Returned rows are snake_case hashes;
+Yahoo advertorial rows are filtered out.
 
 `valuation` / `get_valuation_measures` returns a `Ryfinance::Table` with:
 

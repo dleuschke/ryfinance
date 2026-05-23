@@ -11,6 +11,7 @@ All notable changes to RYFinance are documented here.
 - Added opt-in GET response caching and transient HTTP retry controls.
 - Added HTTP proxy support through `Ryfinance::Client`, `download`, and `Ticker#history`.
 - Added threaded multi-ticker downloads and structured progress callbacks.
+- Added Yahoo ticker news stream tabs through `Ticker#news`.
 - Added ETF and mutual fund data through `Ticker#funds_data`.
 - Added earnings calendar dates through `Ticker#earnings_dates`.
 - Added market status through `Ryfinance::Market#status`.

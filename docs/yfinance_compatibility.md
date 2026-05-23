@@ -224,6 +224,9 @@ Live streaming:
   `Ryfinance::Table`. The current Python yfinance internals expose
   `get_shares`, but the fundamentals-backed scraper may raise a not-implemented
   exception for that dataset.
+- `Ticker#news` uses Yahoo's ticker news stream with the same `tab:` values as
+  yfinance: `"news"`, `"all"`, and `"press releases"`. Returned article keys are
+  snake_case symbols.
 - `Ticker#valuation` returns a current `Ryfinance::Table` snapshot from Yahoo's
   structured quote-summary data. yfinance's `get_valuation_measures` scrapes the
   key-statistics page and may expose historical columns when Yahoo renders them.

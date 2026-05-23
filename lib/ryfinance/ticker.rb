@@ -95,6 +95,12 @@ module Ryfinance
       "11" => "Meeting"
     }.freeze
 
+    NEWS_TAB_QUERY_REFS = {
+      "all" => "newsAll",
+      "news" => "latestNews",
+      "press releases" => "pressRelease"
+    }.freeze
+
     attr_reader :ticker
 
     def initialize(ticker, session: nil, client: nil, proxy: nil)
@@ -501,12 +507,12 @@ module Ryfinance
     end
 
     def get_news(count: 10, tab: "news", timeout: 10)
-      unless ["news", "all", "press releases"].include?(tab.to_s.downcase)
-        raise ArgumentError, "tab must be one of: news, all, press releases"
-      end
+      query_ref = NEWS_TAB_QUERY_REFS[tab.to_s.downcase]
+      raise ArgumentError, "tab must be one of: #{NEWS_TAB_QUERY_REFS.keys.join(', ')}" unless query_ref
 
-      data = @client.search(@ticker, quotes_count: 0, news_count: count, timeout: timeout)
-      Array(data["news"]).map { |row| Utils.deep_symbolize(Utils.unwrap_value(row)) }
+      @client.news(@ticker, query_ref: query_ref, count: count, timeout: timeout).map do |row|
+        Utils.deep_symbolize(Utils.unwrap_value(row))
+      end
     end
     alias news get_news
 

@@ -27,6 +27,7 @@ class TickerTest < Minitest::Test
         "news" => [{ "title" => "Microsoft news", "publisher" => "Example" }]
       }
     end
+    @transport.route(%r{/xhr/ncp}) { news_fixture }
     @client = Ryfinance::Client.new(transport: @transport)
     @ticker = Ryfinance::Ticker.new("msft", client: @client)
   end
@@ -203,6 +204,23 @@ class TickerTest < Minitest::Test
 
     assert_equal "MSFT", search.quotes.first[:symbol]
     assert_equal "Microsoft news", @ticker.news(count: 1).first[:title]
+  end
+
+  def test_news_uses_yahoo_ncp_tabs_and_filters_ads
+    articles = @ticker.news(count: 3, tab: "press releases")
+
+    assert_equal 1, articles.size
+    assert_equal "Microsoft news", articles.first[:title]
+    request = @transport.requests.last
+    query = URI.decode_www_form(request[:uri].query).to_h
+    assert_equal "pressRelease", query["queryRef"]
+    assert_equal "ncp_fin", query["serviceKey"]
+    assert_equal 3, request[:body].dig("serviceConfig", "snippetCount")
+    assert_equal ["MSFT"], request[:body].dig("serviceConfig", "s")
+  end
+
+  def test_news_rejects_unknown_tabs
+    assert_raises(ArgumentError) { @ticker.news(tab: "videos") }
   end
 
   def test_shares_full_is_ruby_alias_for_get_shares_full

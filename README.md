@@ -155,6 +155,8 @@ msft.valuation
 msft.calendar
 msft.earnings_dates
 msft.sec_filings
+msft.news(count: 10)
+msft.news(tab: "press releases", count: 5)
 msft.recommendations
 msft.upgrades_downgrades
 msft.analyst_price_targets
@@ -173,6 +175,9 @@ msft.sustainability
 `valuation` returns a `Ryfinance::Table` of current valuation metrics such as
 market cap, enterprise value, PE ratios, PEG ratio, price/book, and
 enterprise-value multiples.
+
+`news` supports Yahoo's `news`, `all`, and `press releases` tabs and filters
+advertorial rows from the returned article list.
 
 Financial statement helpers:
 

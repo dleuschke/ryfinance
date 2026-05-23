@@ -433,6 +433,28 @@ def market_status_fixture
   }
 end
 
+def news_fixture
+  {
+    "data" => {
+      "tickerStream" => {
+        "stream" => [
+          {
+            "title" => "Microsoft news",
+            "publisher" => "Example",
+            "link" => "https://example.test/news",
+            "providerPublishTime" => 1_704_067_200
+          },
+          {
+            "title" => "Sponsored story",
+            "publisher" => "Ads",
+            "ad" => ["sponsored"]
+          }
+        ]
+      }
+    }
+  }
+end
+
 def lookup_fixture(symbol: "AAPL", quote_type: "EQUITY")
   {
     "finance" => {
