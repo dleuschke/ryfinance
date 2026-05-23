@@ -173,6 +173,9 @@ Live streaming:
 - Yahoo cookie/crumb handling is lazy by default. RYFinance fetches a crumb only
   after Yahoo responds as though one is required; yfinance generally manages
   cookie and crumb state before making protected requests.
+- GET response caching is exposed through `Ryfinance::Client` instead of
+  accepting a Python `requests_cache` session.
+- `Ryfinance::Client` retries transient HTTP 429 and 5xx responses by default.
 - `AsyncWebSocket` follows Ruby's `async` gem conventions instead of Python's
   `async` / `await` syntax.
 - Screener query field coverage is focused on common Yahoo fields and the

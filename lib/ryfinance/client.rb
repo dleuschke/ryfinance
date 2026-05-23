@@ -3,6 +3,7 @@
 require "cgi"
 require "json"
 require "net/http"
+require "time"
 require "uri"
 
 module Ryfinance
@@ -82,17 +83,25 @@ module Ryfinance
     CRUMB_COOKIE_URL = "https://fc.yahoo.com"
     CRUMB_RETRY_STATUSES = [401, 403, 422].freeze
     CRUMB_MODES = [:auto, :always, false].freeze
+    DEFAULT_RETRY_STATUSES = [429, 500, 502, 503, 504].freeze
 
-    attr_reader :transport
+    attr_reader :transport, :cache
 
-    def initialize(transport: nil, headers: {}, crumb: :auto)
+    def initialize(transport: nil, headers: {}, crumb: :auto, cache: nil, cache_ttl: nil, retries: 1, retry_backoff: 0.5, retry_max_sleep: 5, retry_statuses: DEFAULT_RETRY_STATUSES)
       raise ArgumentError, "crumb must be :auto, :always, or false" unless CRUMB_MODES.include?(crumb)
+      raise ArgumentError, "retries must be zero or greater" if retries.to_i.negative?
 
       @transport = transport || NetHTTPTransport.new
       @headers = DEFAULT_HEADERS.merge(headers)
       @crumb_mode = crumb
       @crumb = nil
       @crumb_mutex = Mutex.new
+      @cache = cache == true ? MemoryCache.new : cache
+      @cache_ttl = cache_ttl
+      @retries = retries.to_i
+      @retry_backoff = retry_backoff.to_f
+      @retry_max_sleep = retry_max_sleep.to_f
+      @retry_statuses = retry_statuses.map(&:to_i)
     end
 
     def chart(symbol, params:, timeout: 10)
@@ -227,9 +236,19 @@ module Ryfinance
 
     def get(path, base: BASE_URL, params: {}, timeout: 10)
       uri = build_uri(path, base: base, params: params)
+      cache_key = cache_key_for(:get, uri)
+      cached = read_cache(cache_key)
+      return cached if cached
+
       response = request_with_crumb_retry(:get, uri, timeout: timeout)
       raise_for_response!(response, uri)
+      write_cache(cache_key, response)
       response
+    end
+
+    def clear_cache
+      @cache.clear if @cache.respond_to?(:clear)
+      self
     end
 
     private
@@ -241,13 +260,25 @@ module Ryfinance
         request_uri = with_crumb(uri, crumb) if crumb
       end
 
-      response = raw_request(method, request_uri, timeout: timeout, body: body)
+      response = raw_request_with_retries(method, request_uri, timeout: timeout, body: body)
       return response unless should_retry_with_crumb?(response)
 
       crumb = ensure_crumb(timeout: timeout, refresh: true)
       return response unless crumb
 
-      raw_request(method, with_crumb(uri, crumb), timeout: timeout, body: body)
+      raw_request_with_retries(method, with_crumb(uri, crumb), timeout: timeout, body: body)
+    end
+
+    def raw_request_with_retries(method, uri, timeout:, body: nil)
+      attempts = 0
+
+      loop do
+        response = raw_request(method, uri, timeout: timeout, body: body)
+        return response unless retryable_response?(response) && attempts < @retries
+
+        sleep retry_delay(response, attempts)
+        attempts += 1
+      end
     end
 
     def raw_request(method, uri, timeout:, body: nil)
@@ -262,6 +293,32 @@ module Ryfinance
         end
 
       normalize_transport_response(response)
+    end
+
+    def retryable_response?(response)
+      @retry_statuses.include?(response.code)
+    end
+
+    def retry_delay(response, attempts)
+      delay = retry_after(response) || (@retry_backoff * (2**attempts))
+      return 0 if delay <= 0
+
+      [delay, @retry_max_sleep].min
+    end
+
+    def retry_after(response)
+      value = header_value(response.headers, "retry-after")
+      return nil if value.to_s.empty?
+      return value.to_f if value.to_s.match?(/\A\d+(\.\d+)?\z/)
+
+      Time.httpdate(value).to_f - Time.now.to_f
+    rescue ArgumentError
+      nil
+    end
+
+    def header_value(headers, name)
+      headers ||= {}
+      headers.find { |key, _value| key.to_s.downcase == name }&.last
     end
 
     def should_retry_with_crumb?(response)
@@ -286,14 +343,14 @@ module Ryfinance
 
     def fetch_cookie_for_crumb(timeout:)
       uri = URI(CRUMB_COOKIE_URL)
-      raw_request(:get, uri, timeout: timeout)
+      raw_request_with_retries(:get, uri, timeout: timeout)
     rescue HTTPError, Error
       nil
     end
 
     def fetch_crumb(timeout:)
       uri = URI(CRUMB_URL)
-      response = raw_request(:get, uri, timeout: timeout)
+      response = raw_request_with_retries(:get, uri, timeout: timeout)
       raise RateLimitError.new("Yahoo crumb request was rate limited", status: response.code, body: response.body, uri: uri) if response.code == 429
       return nil unless response.code.between?(200, 299)
 
@@ -311,6 +368,32 @@ module Ryfinance
       next_uri = uri.dup
       next_uri.query = URI.encode_www_form(params)
       next_uri
+    end
+
+    def read_cache(key)
+      return nil unless cache_enabled?
+
+      cached = @cache.read(key)
+      cached && duplicate_response(cached)
+    end
+
+    def write_cache(key, response)
+      return response unless cache_enabled? && response.code.between?(200, 299)
+
+      @cache.write(key, duplicate_response(response), expires_in: @cache_ttl)
+      response
+    end
+
+    def cache_enabled?
+      @cache && @cache_ttl && @cache_ttl.to_f.positive?
+    end
+
+    def cache_key_for(method, uri)
+      "#{method}:#{uri}"
+    end
+
+    def duplicate_response(response)
+      Response.new(code: response.code.to_i, body: response.body.to_s.dup, headers: (response.headers || {}).dup)
     end
 
     def build_uri(path, base:, params:)
@@ -332,7 +415,7 @@ module Ryfinance
 
     def normalize_transport_response(response)
       if response.is_a?(Response)
-        response
+        Response.new(code: response.code.to_i, body: response.body.to_s, headers: response.headers || {})
       elsif response.respond_to?(:code) && response.respond_to?(:body)
         Response.new(code: response.code.to_i, body: response.body.to_s, headers: {})
       else

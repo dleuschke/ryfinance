@@ -74,4 +74,72 @@ class ClientTest < Minitest::Test
     query = URI.decode_www_form(transport.requests.last[:uri].query.to_s).to_h
     assert_equal "crumb-token", query["crumb"]
   end
+
+  def test_client_caches_successful_get_responses
+    transport = FakeTransport.new
+    calls = 0
+    transport.route(%r{/v7/finance/quote}) do
+      calls += 1
+      quote_fixture("MSFT")
+    end
+    client = Ryfinance::Client.new(transport: transport, cache: true, cache_ttl: 60)
+
+    first = client.quote("MSFT")
+    second = client.quote("MSFT")
+
+    assert_equal "MSFT", first.first["symbol"]
+    assert_equal first, second
+    assert_equal 1, calls
+    assert_equal 1, transport.requests.size
+  end
+
+  def test_client_clear_cache_forces_next_get
+    transport = FakeTransport.new
+    calls = 0
+    transport.route(%r{/v7/finance/quote}) do
+      calls += 1
+      quote_fixture("MSFT")
+    end
+    client = Ryfinance::Client.new(transport: transport, cache: Ryfinance::MemoryCache.new, cache_ttl: 60)
+
+    client.quote("MSFT")
+    client.clear_cache
+    client.quote("MSFT")
+
+    assert_equal 2, calls
+  end
+
+  def test_transient_responses_are_retried
+    transport = FakeTransport.new
+    attempts = 0
+    transport.route(%r{/v7/finance/quote}) do
+      attempts += 1
+      attempts == 1 ? { code: 503, body: "try later" } : quote_fixture("MSFT")
+    end
+    client = Ryfinance::Client.new(transport: transport, retries: 1, retry_backoff: 0)
+
+    result = client.quote("MSFT")
+
+    assert_equal "MSFT", result.first["symbol"]
+    assert_equal 2, attempts
+  end
+
+  def test_retry_after_header_is_accepted
+    transport = FakeTransport.new
+    attempts = 0
+    transport.route(%r{/v7/finance/quote}) do
+      attempts += 1
+      if attempts == 1
+        { code: 429, body: "rate limited", headers: { "Retry-After" => "0" } }
+      else
+        quote_fixture("MSFT")
+      end
+    end
+    client = Ryfinance::Client.new(transport: transport, retries: 1, retry_backoff: 30)
+
+    result = client.quote("MSFT")
+
+    assert_equal "MSFT", result.first["symbol"]
+    assert_equal 2, attempts
+  end
 end

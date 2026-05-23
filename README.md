@@ -364,6 +364,35 @@ client = Ryfinance::Client.new(crumb: false)
 
 Use `crumb: :always` to fetch and attach a crumb before the first request.
 
+## Response Cache and Retries
+
+GET response caching is opt-in. Use `Ryfinance::MemoryCache` for scripts, or
+provide an object that responds to `read(key)`, `write(key, value, expires_in:)`,
+and optionally `clear`.
+
+```ruby
+cache = Ryfinance::MemoryCache.new(max_size: 500)
+client = Ryfinance::Client.new(cache: cache, cache_ttl: 60)
+
+Ryfinance::Ticker.new("MSFT", client: client).info
+client.clear_cache
+```
+
+Only successful GET responses are cached; POST requests, failed responses, and
+WebSocket messages are not cached. The client also retries transient Yahoo HTTP
+responses by default:
+
+```ruby
+client = Ryfinance::Client.new(
+  retries: 2,
+  retry_backoff: 0.5,
+  retry_max_sleep: 5
+)
+```
+
+Retries apply to HTTP 429, 500, 502, 503, and 504 responses and honor
+`Retry-After` when Yahoo sends it.
+
 ## Timezone Cache
 
 `set_tz_cache_location` stores exchange timezone metadata learned from history

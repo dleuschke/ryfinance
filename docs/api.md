@@ -300,7 +300,12 @@ behavior.
 client = Ryfinance::Client.new(
   headers: {},
   transport: nil,
-  crumb: :auto
+  crumb: :auto,
+  cache: nil,
+  cache_ttl: nil,
+  retries: 1,
+  retry_backoff: 0.5,
+  retry_max_sleep: 5
 )
 
 ticker = Ryfinance::Ticker.new("MSFT", client: client)
@@ -313,6 +318,19 @@ ticker = Ryfinance::Ticker.new("MSFT", client: client)
 - `:always` fetches and attaches a crumb before the first request.
 - `false` disables crumb fetching and retry behavior.
 
+`cache:` enables successful GET response caching when paired with a positive
+`cache_ttl:`. Pass `true` to use `Ryfinance::MemoryCache`, or pass a custom
+object that responds to `read(key)` and `write(key, value, expires_in:)`.
+
+```ruby
+client = Ryfinance::Client.new(cache: true, cache_ttl: 60)
+client.clear_cache
+```
+
+`retries:` controls retries for transient Yahoo HTTP responses. By default the
+client retries HTTP 429, 500, 502, 503, and 504 once, uses exponential
+`retry_backoff:`, caps sleep at `retry_max_sleep:`, and honors `Retry-After`.
+
 Custom HTTP transports must implement:
 
 ```ruby
@@ -322,6 +340,19 @@ post(uri, headers:, body:, timeout:)
 
 The default `Ryfinance::NetHTTPTransport` keeps a small in-memory cookie jar so
 Yahoo cookies learned while fetching a crumb are sent on later requests.
+
+## `Ryfinance::MemoryCache`
+
+Thread-safe in-memory cache for `Ryfinance::Client`.
+
+```ruby
+cache = Ryfinance::MemoryCache.new(max_size: 500)
+cache.write("key", "value", expires_in: 60)
+cache.read("key")
+cache.delete("key")
+cache.clear
+cache.size
+```
 
 ## `Ryfinance::WebSocket`
 
