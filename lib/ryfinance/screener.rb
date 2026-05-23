@@ -16,6 +16,14 @@ module Ryfinance
       def valid_values
         self::VALID_VALUES
       end
+
+      def restricted_value_fields
+        valid_values.keys.map(&:to_s)
+      end
+
+      def unrestricted_value_fields
+        valid_fields.values.flatten.map(&:to_s).uniq - restricted_value_fields
+      end
     end
 
     attr_reader :operator, :operand

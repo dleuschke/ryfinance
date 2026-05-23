@@ -84,6 +84,18 @@ class ScreenerTest < Minitest::Test
     assert_includes Ryfinance::ETFQuery.valid_values[:morningstar_uncertainty], "Very High"
   end
 
+  def test_large_open_enum_fields_do_not_reject_valid_yahoo_values
+    equity = Ryfinance::EquityQuery.new("eq", ["industry", "Semiconductors"])
+    fund = Ryfinance::FundQuery.new("eq", ["categoryname", "Large Blend"])
+    etf = Ryfinance::ETFQuery.new("eq", ["fundfamilyname", "iShares"])
+
+    assert_equal ["industry", "Semiconductors"], equity.to_h["operands"]
+    assert_equal ["categoryname", "Large Blend"], fund.to_h["operands"]
+    assert_equal ["fundfamilyname", "iShares"], etf.to_h["operands"]
+    assert_includes Ryfinance::ETFQuery.restricted_value_fields, "morningstar_uncertainty"
+    assert_includes Ryfinance::ETFQuery.unrestricted_value_fields, "fundfamilyname"
+  end
+
   def test_predefined_screen_uses_predefined_endpoint
     transport = FakeTransport.new
     transport.route(%r{/v1/finance/screener/predefined/saved}) { screener_fixture }

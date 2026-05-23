@@ -168,7 +168,8 @@ Screeners:
 
 Query builders validate Yahoo field names, restricted enum values, and numeric
 comparisons before requests are sent. `is-in` serializes as yfinance's `OR` of
-`EQ` queries.
+`EQ` queries. Very large Yahoo enum families such as industry, fund category,
+and fund family are treated as open-ended instead of partially validated.
 
 Lookup:
 

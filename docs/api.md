@@ -690,6 +690,9 @@ Supported operators:
 each asset class. Query builders validate field names, restricted enum values,
 and numeric operands before sending a custom screen to Yahoo. Ruby symbols are
 accepted for field names and enum values when their string form is valid.
+`restricted_value_fields` lists fields with local enum validation, and
+`unrestricted_value_fields` lists valid fields whose Yahoo values are open-ended
+or too large to safely freeze in the gem.
 
 `is-in` is a construction shortcut that serializes to Yahoo's `OR` of `EQ`
 queries, matching yfinance:
