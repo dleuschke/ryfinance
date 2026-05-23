@@ -71,6 +71,22 @@ Options:
 - `lists_count:`
 - `timeout:`
 
+### `Ryfinance.lookup(query, **options)`
+
+Returns a `Ryfinance::Lookup` object for typed instrument discovery.
+
+```ruby
+lookup = Ryfinance.lookup("apple")
+lookup.stock
+lookup.etf
+lookup.get_cryptocurrency(count: 10)
+```
+
+Options:
+
+- `timeout:`
+- `raise_errors:`
+
 ### `Ryfinance.market(region: "US")`
 
 Returns a `Ryfinance::Market` object. Call `#summary` to fetch market summary
@@ -515,6 +531,38 @@ industry.top_growth_companies
 industry.top_performing_companies
 ```
 
+## `Ryfinance::Lookup`
+
+Typed Yahoo instrument lookup. Each method returns a `Ryfinance::Table`.
+
+```ruby
+lookup = Ryfinance::Lookup.new("apple")
+lookup.all
+lookup.stock
+lookup.mutualfund
+lookup.etf
+lookup.index
+lookup.future
+lookup.currency
+lookup.cryptocurrency
+lookup.get_stock(count: 100)
+```
+
+Available getter methods:
+
+- `get_all(count: 25)`
+- `get_stock(count: 25)`
+- `get_mutualfund(count: 25)`
+- `get_etf(count: 25)`
+- `get_index(count: 25)`
+- `get_future(count: 25)`
+- `get_currency(count: 25)`
+- `get_cryptocurrency(count: 25)`
+
+Ruby tables keep `:symbol` as an explicit column instead of using it as a
+DataFrame index. Pass `raise_errors: false` to return an empty table when Yahoo
+returns a lookup error.
+
 ## `Ryfinance::Table`
 
 `Table` is an enumerable wrapper around row hashes.
@@ -541,6 +589,7 @@ compatibility. New Ruby code should prefer the canonical names above.
 | --- | --- |
 | `Ryfinance.Ticker("MSFT")` | `Ryfinance::Ticker.new("MSFT")` or `Ryfinance.ticker("MSFT")` |
 | `Ryfinance.Tickers("MSFT AAPL")` | `Ryfinance::Tickers.new("MSFT AAPL")` or `Ryfinance.tickers("MSFT AAPL")` |
+| `Ryfinance.Lookup("apple")` | `Ryfinance::Lookup.new("apple")` or `Ryfinance.lookup("apple")` |
 | `Ryfinance.Sector("technology")` | `Ryfinance::Sector.new("technology")` or `Ryfinance.sector("technology")` |
 | `Ryfinance.Industry("software")` | `Ryfinance::Industry.new("software")` or `Ryfinance.industry("software")` |
 | `Ryfinance.WebSocket(...)` | `Ryfinance::WebSocket.new(...)` |

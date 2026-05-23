@@ -164,6 +164,28 @@ module Ryfinance
       )
     end
 
+    def lookup(query, type:, count:, timeout: 30)
+      data = get_json(
+        "/v1/finance/lookup",
+        base: QUERY1_URL,
+        params: {
+          query: query,
+          type: type,
+          start: 0,
+          count: count,
+          formatted: "false",
+          fetchPricingData: "true",
+          lang: "en-US",
+          region: "US"
+        },
+        timeout: timeout
+      )
+      error = data.dig("finance", "error")
+      raise_yahoo_error(error) if error
+
+      Array(data.dig("finance", "result", 0, "documents"))
+    end
+
     def market_summary(region: "US", timeout: 10)
       get_json(
         "/v6/finance/quote/marketSummary",

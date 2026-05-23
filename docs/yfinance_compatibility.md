@@ -52,11 +52,13 @@ Core constructor and module shims:
 
 - `Ryfinance.Ticker`
 - `Ryfinance.Tickers`
+- `Ryfinance.Lookup`
 - `Ryfinance.Sector`
 - `Ryfinance.Industry`
 - `Ryfinance.WebSocket`
 - `Ryfinance.AsyncWebSocket`
 - `download`
+- `lookup`
 - `screen`
 - `EquityQuery`
 - `FundQuery`
@@ -144,6 +146,17 @@ Screeners:
 - `ETFQuery`
 - `screen`
 
+Lookup:
+
+- `Lookup#get_all` / `Lookup#all`
+- `Lookup#get_stock` / `Lookup#stock`
+- `Lookup#get_mutualfund` / `Lookup#mutualfund`
+- `Lookup#get_etf` / `Lookup#etf`
+- `Lookup#get_index` / `Lookup#index`
+- `Lookup#get_future` / `Lookup#future`
+- `Lookup#get_currency` / `Lookup#currency`
+- `Lookup#get_cryptocurrency` / `Lookup#cryptocurrency`
+
 Live streaming:
 
 - `WebSocket#subscribe`
@@ -179,6 +192,8 @@ Live streaming:
 - `Ticker#earnings_dates` returns a `Ryfinance::Table` with an explicit
   `:earnings_date` column instead of a Pandas datetime index. It accepts
   `limit:`, `offset:`, and `as_dict:`.
+- `Lookup` methods return `Ryfinance::Table` objects with `:symbol` as an
+  ordinary column instead of a Pandas index.
 - Yahoo cookie/crumb handling is lazy by default. RYFinance fetches a crumb only
   after Yahoo responds as though one is required; yfinance generally manages
   cookie and crumb state before making protected requests.
@@ -279,6 +294,24 @@ Ruby:
 msft = Ryfinance::Ticker.new("MSFT")
 dates = msft.earnings_dates(limit: 12, offset: 0)
 dates.first[:earnings_date]
+```
+
+### Lookup
+
+Python:
+
+```python
+lookup = yf.Lookup("apple")
+stocks = lookup.get_stock(count=25)
+etfs = lookup.etf
+```
+
+Ruby:
+
+```ruby
+lookup = Ryfinance::Lookup.new("apple")
+stocks = lookup.get_stock(count: 25)
+etfs = lookup.etf
 ```
 
 ### Screener

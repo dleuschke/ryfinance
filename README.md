@@ -224,9 +224,18 @@ result = Ryfinance.search("Microsoft", quotes_count: 5, news_count: 3)
 result.quotes
 result.news
 
+lookup = Ryfinance.lookup("apple")
+lookup.stock
+lookup.etf
+lookup.get_cryptocurrency(count: 10)
+
 market = Ryfinance.market(region: "US")
 market.summary
 ```
+
+`Ryfinance::Lookup` returns typed instrument results as `Ryfinance::Table`
+objects. Available categories are `all`, `stock`, `mutualfund`, `etf`, `index`,
+`future`, `currency`, and `cryptocurrency`.
 
 ## Live Streaming
 

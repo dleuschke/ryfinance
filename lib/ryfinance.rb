@@ -12,6 +12,7 @@ require_relative "ryfinance/funds_data"
 require_relative "ryfinance/ticker"
 require_relative "ryfinance/tickers"
 require_relative "ryfinance/search"
+require_relative "ryfinance/lookup"
 require_relative "ryfinance/market"
 require_relative "ryfinance/screener"
 require_relative "ryfinance/domain"
@@ -53,7 +54,11 @@ module Ryfinance
   end
 
   def lookup(query, session: nil, client: nil, **options)
-    Search.new(query, session: session, client: client, **options).fetch
+    Lookup.new(query, session: session, client: client, **options)
+  end
+
+  def Lookup(query, session: nil, client: nil, **options)
+    Ryfinance::Lookup.new(query, session: session, client: client, **options)
   end
 
   def market(region: "US", session: nil, client: nil)

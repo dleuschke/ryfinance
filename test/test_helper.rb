@@ -328,6 +328,40 @@ def screener_fixture
   }
 end
 
+def lookup_fixture(symbol: "AAPL", quote_type: "EQUITY")
+  {
+    "finance" => {
+      "result" => [
+        {
+          "documents" => [
+            {
+              "symbol" => symbol,
+              "shortName" => "Apple Inc.",
+              "quoteType" => quote_type,
+              "exchange" => "NMS",
+              "regularMarketPrice" => { "raw" => 190.25, "fmt" => "190.25" },
+              "marketCap" => { "raw" => 2_900_000_000_000 }
+            }
+          ]
+        }
+      ],
+      "error" => nil
+    }
+  }
+end
+
+def lookup_error_fixture
+  {
+    "finance" => {
+      "result" => [],
+      "error" => {
+        "code" => "Bad Request",
+        "description" => "Invalid lookup query"
+      }
+    }
+  }
+end
+
 def sector_fixture
   {
     "data" => {
