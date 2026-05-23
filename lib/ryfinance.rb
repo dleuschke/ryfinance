@@ -41,14 +41,32 @@ module Ryfinance
     Tickers(tickers, session: session, client: client, proxy: proxy)
   end
 
-  def download(tickers, session: nil, client: nil, proxy: nil, threads: true, progress: false, **options)
+  def download(
+    tickers,
+    session: nil,
+    client: nil,
+    proxy: nil,
+    threads: true,
+    progress: false,
+    raise_errors: false,
+    **options
+  )
     client ||= session || Client.new(proxy: proxy)
     symbols = Utils.normalize_tickers(tickers)
-    tables = download_tables(symbols, client: client, proxy: proxy, threads: threads, progress: progress, options: options)
+    validate_download_history_options!(options)
+    tables, errors = download_tables(
+      symbols,
+      client: client,
+      proxy: proxy,
+      threads: threads,
+      progress: progress,
+      raise_errors: raise_errors,
+      options: options
+    )
 
     return tables.values.first if symbols.one? && !options.fetch(:multi_level_index, false)
 
-    DownloadResult.new(tables, group_by: options.fetch(:group_by, "column"))
+    DownloadResult.new(tables, group_by: options.fetch(:group_by, "column"), errors: errors)
   end
 
   def search(query, session: nil, client: nil, **options)
@@ -166,7 +184,23 @@ module Ryfinance
   end
   private_class_method :history_options
 
-  def download_tables(symbols, client:, proxy:, threads:, progress:, options:)
+  def validate_download_history_options!(options)
+    interval = options.fetch(:interval, "1d").to_s
+    unless Ticker::VALID_INTERVALS.include?(interval)
+      raise ArgumentError, "interval must be one of: #{Ticker::VALID_INTERVALS.join(', ')}"
+    end
+
+    finish = options.key?(:end) ? options[:end] : options[:end_date]
+    return if options[:start] || finish
+
+    period = options.fetch(:range, options.fetch(:period, "1mo")).to_s
+    return if Ticker::VALID_PERIODS.include?(period)
+
+    raise ArgumentError, "period must be one of: #{Ticker::VALID_PERIODS.join(', ')}"
+  end
+  private_class_method :validate_download_history_options!
+
+  def download_tables(symbols, client:, proxy:, threads:, progress:, raise_errors:, options:)
     tables = {}
     errors = {}
     completed = 0
@@ -182,7 +216,10 @@ module Ryfinance
           table = Ryfinance::Ticker.new(symbol, client: client).history(proxy: proxy, **history_options(options))
           mutex.synchronize { tables[symbol] = table }
         rescue StandardError => error
-          mutex.synchronize { errors[symbol] = error }
+          mutex.synchronize do
+            errors[symbol] = error
+            tables[symbol] = empty_download_table(symbol, error)
+          end
         ensure
           payload = mutex.synchronize do
             completed += 1
@@ -202,11 +239,26 @@ module Ryfinance
       worker.call
     end
 
-    raise errors.values.first unless errors.empty?
+    raise errors.values.first if raise_errors && !errors.empty?
 
-    symbols.each_with_object({}) { |symbol, ordered| ordered[symbol] = tables[symbol] }
+    ordered = symbols.each_with_object({}) { |symbol, result| result[symbol] = tables[symbol] }
+    [ordered, errors]
   end
   private_class_method :download_tables
+
+  def empty_download_table(symbol, error)
+    Table.new(
+      [],
+      columns: %i[date open high low close adj_close volume dividends stock_splits capital_gains],
+      metadata: {
+        symbol: symbol,
+        error: error,
+        error_class: error.class.name,
+        error_message: error.message
+      }
+    )
+  end
+  private_class_method :empty_download_table
 
   def download_thread_count(threads, total)
     return 1 if total <= 1 || threads == false || threads.nil?

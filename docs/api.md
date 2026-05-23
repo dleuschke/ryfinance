@@ -60,10 +60,14 @@ Common options:
   downloads
 - `progress:` `true` to print per-ticker updates, or any callable object to
   receive structured progress events
+- `raise_errors:` when true, raise the first captured per-ticker error after the
+  batch finishes
 - `multi_level_index:` when true, always return `DownloadResult`
 
 For one ticker the default return is `Ryfinance::Table`. For multiple tickers the
-return is `Ryfinance::DownloadResult`.
+return is `Ryfinance::DownloadResult`. Failed tickers do not abort a batch by
+default. Their tables are empty and include `metadata[:error]`; multi-ticker
+results expose `errors`, `failed_tickers`, `successful_tickers`, and `success?`.
 
 Progress callables receive keyword arguments:
 
@@ -77,6 +81,13 @@ Ryfinance.download(
 
 events.first
 #=> {:ticker=>"MSFT", :completed=>1, :total=>2, :error=>nil}
+```
+
+Use `raise_errors: true` for strict behavior:
+
+```ruby
+Ryfinance.download("MSFT BADTICKER", raise_errors: true)
+# raises Ryfinance::NotFoundError after the batch completes
 ```
 
 ### `Ryfinance.search(query, **options)`
@@ -736,6 +747,28 @@ table.where { |row| row[:close].to_f > 100 }
 table.to_a
 table.to_h(index: :date)
 table.to_csv
+```
+
+Download failure tables include these metadata keys:
+
+- `:error` original exception object
+- `:error_class` exception class name
+- `:error_message` exception message
+
+## `Ryfinance::DownloadResult`
+
+`DownloadResult` is an enumerable wrapper around ticker tables returned by
+multi-ticker downloads.
+
+```ruby
+data.tickers
+data["MSFT"]
+data.to_h
+data.to_a
+data.errors
+data.failed_tickers
+data.successful_tickers
+data.success?
 ```
 
 ## Compatibility Aliases

@@ -91,11 +91,12 @@ module Ryfinance
   class DownloadResult
     include Enumerable
 
-    attr_reader :tables, :group_by
+    attr_reader :tables, :group_by, :errors
 
-    def initialize(tables, group_by: "column")
+    def initialize(tables, group_by: "column", errors: {})
       @tables = tables.transform_keys { |ticker| ticker.to_s.upcase }
       @group_by = group_by.to_s
+      @errors = errors.transform_keys { |ticker| ticker.to_s.upcase }
     end
 
     def [](ticker)
@@ -108,6 +109,18 @@ module Ryfinance
 
     def tickers
       @tables.keys
+    end
+
+    def failed_tickers
+      @errors.keys
+    end
+
+    def successful_tickers
+      tickers - failed_tickers
+    end
+
+    def success?
+      @errors.empty?
     end
 
     def empty?
@@ -145,4 +158,3 @@ module Ryfinance
     end
   end
 end
-

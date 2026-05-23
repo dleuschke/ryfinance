@@ -58,6 +58,62 @@ class DownloadTest < Minitest::Test
     assert events.all? { |event| event[:error].nil? }
   end
 
+  def test_download_keeps_successes_and_captures_failures_by_default
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) do |uri|
+      symbol = uri.path.split("/").last
+      symbol == "FAIL" ? chart_error_fixture(symbol) : chart_fixture(symbol)
+    end
+    client = Ryfinance::Client.new(transport: transport)
+    events = []
+
+    result = Ryfinance.download(
+      "msft fail",
+      client: client,
+      threads: false,
+      progress: ->(**event) { events << event }
+    )
+
+    assert_instance_of Ryfinance::DownloadResult, result
+    assert_equal ["MSFT", "FAIL"], result.tickers
+    assert_equal ["MSFT"], result.successful_tickers
+    assert_equal ["FAIL"], result.failed_tickers
+    refute result.success?
+    assert_equal 2, result["MSFT"].size
+    assert_empty result["FAIL"]
+    assert_instance_of Ryfinance::NotFoundError, result.errors["FAIL"]
+    assert_equal "FAIL", result["FAIL"].metadata[:symbol]
+    assert_equal "Ryfinance::NotFoundError", result["FAIL"].metadata[:error_class]
+    assert_instance_of Ryfinance::NotFoundError, events.last[:error]
+  end
+
+  def test_download_returns_empty_table_for_single_failed_ticker_by_default
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { |uri| chart_error_fixture(uri.path.split("/").last) }
+    client = Ryfinance::Client.new(transport: transport)
+
+    result = Ryfinance.download("fail", client: client)
+
+    assert_instance_of Ryfinance::Table, result
+    assert_empty result
+    assert_instance_of Ryfinance::NotFoundError, result.metadata[:error]
+  end
+
+  def test_download_can_raise_captured_errors
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) do |uri|
+      symbol = uri.path.split("/").last
+      symbol == "FAIL" ? chart_error_fixture(symbol) : chart_fixture(symbol)
+    end
+    client = Ryfinance::Client.new(transport: transport)
+
+    error = assert_raises(Ryfinance::NotFoundError) do
+      Ryfinance.download("msft fail", client: client, threads: false, raise_errors: true)
+    end
+
+    assert_match(/No data found/, error.message)
+  end
+
   def test_download_passes_repair_option_to_history
     transport = FakeTransport.new
     transport.route(%r{/v8/finance/chart/}) { download_repair_fixture }
@@ -109,6 +165,18 @@ class DownloadTest < Minitest::Test
           }
         ],
         "error" => nil
+      }
+    }
+  end
+
+  def chart_error_fixture(symbol = "FAIL")
+    {
+      "chart" => {
+        "result" => nil,
+        "error" => {
+          "code" => "Not Found",
+          "description" => "No data found for #{symbol}"
+        }
       }
     }
   end

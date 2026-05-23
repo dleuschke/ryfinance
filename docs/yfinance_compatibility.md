@@ -203,9 +203,12 @@ Live streaming:
   a `Repaired?` column.
 - Time values are returned as UTC `Time` objects.
 - `download` honors `threads:` for concurrent multi-ticker requests and
-  `progress:` for per-ticker completion events. `ignore_tz` is still accepted
-  for API familiarity but is currently ignored because RYFinance returns explicit
-  UTC `Time` values instead of a Pandas datetime index.
+  `progress:` for per-ticker completion events. Like yfinance, batch downloads
+  keep successful tickers when one symbol fails; failed symbols get empty tables
+  with `metadata[:error]`, and `DownloadResult#errors` exposes the captured
+  exceptions. Pass `raise_errors: true` for strict behavior. `ignore_tz` is
+  still accepted for API familiarity but is currently ignored because RYFinance
+  returns explicit UTC `Time` values instead of a Pandas datetime index.
 - Top-level `Ryfinance.Ticker(...)` and similar capitalized module methods are
   compatibility shims. Prefer `Ryfinance::Ticker.new(...)` in new Ruby code.
 - `Ticker#funds_data` returns `nil` for non-fund quote types. For ETFs and
