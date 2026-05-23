@@ -146,6 +146,18 @@ class TickerTest < Minitest::Test
     assert_equal :dividend_adjustment, table.first[:repair_actions].first[:type]
   end
 
+  def test_history_repair_fixes_missing_capital_gain_adjustment
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) { missing_capital_gain_adjustment_fixture }
+    ticker = Ryfinance::Ticker.new("fund", client: Ryfinance::Client.new(transport: transport))
+
+    table = ticker.history(period: "1mo", auto_adjust: false, repair: true)
+
+    assert_equal 98.0, table.first[:adj_close]
+    assert table.first[:repaired]
+    assert_equal :capital_gain_adjustment, table.first[:repair_actions].first[:type]
+  end
+
   def test_history_repair_fixes_small_action_unit_mixups_before_adjusting_dividends
     transport = FakeTransport.new
     transport.route(%r{/v8/finance/chart/}) { small_dividend_unit_mixup_fixture }
@@ -476,6 +488,22 @@ class TickerTest < Minitest::Test
       events: {
         "dividends" => {
           "1704153600" => { "date" => 1_704_153_600, "amount" => 1.0 }
+        }
+      }
+    )
+  end
+
+  def missing_capital_gain_adjustment_fixture
+    chart_fixture_with(
+      open: [99.0, 100.0, 101.0],
+      high: [101.0, 102.0, 103.0],
+      low: [98.0, 99.0, 100.0],
+      close: [100.0, 100.0, 102.0],
+      adjclose: [100.0, 100.0, 102.0],
+      volume: [1000, 1200, 1400],
+      events: {
+        "capitalGains" => {
+          "1704153600" => { "date" => 1_704_153_600, "amount" => 2.0 }
         }
       }
     )

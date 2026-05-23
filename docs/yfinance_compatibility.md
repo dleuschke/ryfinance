@@ -205,7 +205,8 @@ Live streaming:
 - `auto_adjust: true` adjusts OHLC values and still keeps `:adj_close` visible.
 - `repair: true` runs yfinance-style repair passes and adds `:repaired` /
   `:repair_actions` columns plus `metadata[:repairs]`; yfinance exposes this as
-  a `Repaired?` column.
+  a `Repaired?` column. Dividend and capital-gain distributions both participate
+  in adjusted-close repair checks.
 - `Ticker#history` follows yfinance's non-raising default for Yahoo-side
   failures and returns an empty table with `metadata[:error]`. Pass
   `raise_errors: true` for strict behavior.

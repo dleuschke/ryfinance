@@ -782,32 +782,42 @@ module Ryfinance
       repair_unit_mixups(rows, repair_report)
       repair_bad_split_adjustments(rows, repair_report)
       repair_action_unit_mixups(rows, repair_report)
-      repair_missing_dividend_adjustments(rows, repair_report)
+      repair_missing_distribution_adjustments(rows, repair_report)
       repair_ohlc_bounds(rows, repair_report)
       repair_report
     end
 
-    def repair_missing_dividend_adjustments(rows, repair_report)
+    def repair_missing_distribution_adjustments(rows, repair_report)
       rows.each_with_index do |row, index|
         dividend = numeric_value(row[:dividends])
-        next unless dividend&.positive? && index.positive?
+        capital_gain = numeric_value(row[:capital_gains])
+        distribution = dividend.to_f + capital_gain.to_f
+        next unless distribution.positive? && index.positive?
 
         previous_close = numeric_value(rows[index - 1][:close])
         previous_adj_close = numeric_value(rows[index - 1][:adj_close])
         next unless previous_close&.positive? && previous_adj_close&.positive?
         next unless near_ratio?(previous_adj_close / previous_close, 1.0)
 
-        factor = (previous_close - dividend) / previous_close
+        factor = (previous_close - distribution) / previous_close
         next unless factor.positive? && factor < 1.0
 
+        type = distribution_adjustment_type(dividend, capital_gain)
         (0...index).each do |repair_index|
           adjusted = numeric_value(rows[repair_index][:adj_close])
           next unless adjusted
 
           rows[repair_index][:adj_close] = adjusted * factor
-          record_repair(rows[repair_index], repair_report, :dividend_adjustment, [:adj_close], factor: factor)
+          record_repair(rows[repair_index], repair_report, type, [:adj_close], factor: factor)
         end
       end
+    end
+
+    def distribution_adjustment_type(dividend, capital_gain)
+      return :distribution_adjustment if dividend.to_f.positive? && capital_gain.to_f.positive?
+      return :capital_gain_adjustment if capital_gain.to_f.positive?
+
+      :dividend_adjustment
     end
 
     def repair_zero_price_rows(rows, repair_report)
