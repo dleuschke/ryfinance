@@ -119,6 +119,25 @@ class TickerTest < Minitest::Test
     assert_equal :missing_price, table[1][:repair_actions].first[:type]
   end
 
+  def test_history_repair_reconstructs_missing_prices_from_fine_interval_data
+    transport = FakeTransport.new
+    transport.route(%r{/v8/finance/chart/}) do |uri|
+      query = URI.decode_www_form(uri.query.to_s).to_h
+      query["interval"] == "1h" ? fine_interval_reconstruction_fixture : missing_opening_price_chart_fixture
+    end
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    table = ticker.history(period: "1mo", auto_adjust: false, repair: true)
+
+    assert_equal 99.0, table.first[:open]
+    assert_equal 102.0, table.first[:high]
+    assert_equal 98.0, table.first[:low]
+    assert_equal 101.0, table.first[:close]
+    assert_equal 450, table.first[:volume]
+    assert table.first[:repaired]
+    assert_equal :missing_price_reconstruction, table.first[:repair_actions].first[:type]
+  end
+
   def test_history_repair_fixes_ohlc_bounds_and_action_unit_mixups
     transport = FakeTransport.new
     transport.route(%r{/v8/finance/chart/}) { ohlc_and_action_repair_fixture }
@@ -459,6 +478,49 @@ class TickerTest < Minitest::Test
       adjclose: [100.0, 0.0, 112.0],
       volume: [1000, 1200, 1400]
     )
+  end
+
+  def missing_opening_price_chart_fixture
+    chart_fixture_with(
+      open: [nil, 110.0, 111.0],
+      high: [nil, 112.0, 113.0],
+      low: [nil, 109.0, 110.0],
+      close: [0.0, 111.0, 112.0],
+      adjclose: [0.0, 111.0, 112.0],
+      volume: [450, 1500, 1400]
+    )
+  end
+
+  def fine_interval_reconstruction_fixture
+    {
+      "chart" => {
+        "result" => [
+          {
+            "meta" => {
+              "symbol" => "MSFT",
+              "currency" => "USD",
+              "exchangeTimezoneName" => "America/New_York"
+            },
+            "timestamp" => [1_704_067_200, 1_704_070_800, 1_704_074_400],
+            "indicators" => {
+              "quote" => [
+                {
+                  "open" => [99.0, 100.0, 100.5],
+                  "high" => [100.5, 102.0, 101.5],
+                  "low" => [98.0, 99.5, 100.0],
+                  "close" => [100.0, 100.5, 101.0],
+                  "volume" => [100, 150, 200]
+                }
+              ],
+              "adjclose" => [
+                { "adjclose" => [100.0, 100.5, 101.0] }
+              ]
+            }
+          }
+        ],
+        "error" => nil
+      }
+    }
   end
 
   def ohlc_and_action_repair_fixture

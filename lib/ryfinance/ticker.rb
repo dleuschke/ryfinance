@@ -229,7 +229,9 @@ module Ryfinance
           back_adjust: back_adjust,
           rounding: rounding,
           keepna: keepna,
-          repair: repair
+          repair: repair,
+          interval: interval,
+          timeout: timeout
         )
       rescue RateLimitError
         raise
@@ -693,7 +695,7 @@ module Ryfinance
       raise ArgumentError, "interval must be one of: #{VALID_INTERVALS.join(', ')}"
     end
 
-    def table_from_chart(result, actions:, auto_adjust:, back_adjust:, rounding:, keepna:, repair:)
+    def table_from_chart(result, actions:, auto_adjust:, back_adjust:, rounding:, keepna:, repair:, interval:, timeout:)
       timestamps = result.fetch("timestamp", [])
       quote = result.dig("indicators", "quote", 0) || {}
       adjclose = result.dig("indicators", "adjclose", 0, "adjclose") || []
@@ -733,7 +735,7 @@ module Ryfinance
         row
       end
 
-      repair_report = repair ? repair_history_rows(rows) : []
+      repair_report = repair ? repair_history_rows(rows, interval: interval, timeout: timeout) : []
 
       rows.map! do |row|
         close = row[:close]
@@ -776,9 +778,9 @@ module Ryfinance
       Table.new([], columns: columns, metadata: metadata)
     end
 
-    def repair_history_rows(rows)
+    def repair_history_rows(rows, interval:, timeout:)
       repair_report = []
-      repair_zero_price_rows(rows, repair_report)
+      repair_zero_price_rows(rows, repair_report, interval: interval, timeout: timeout)
       repair_unit_mixups(rows, repair_report)
       repair_bad_split_adjustments(rows, repair_report)
       repair_action_unit_mixups(rows, repair_report)
@@ -820,19 +822,37 @@ module Ryfinance
       :dividend_adjustment
     end
 
-    def repair_zero_price_rows(rows, repair_report)
+    def repair_zero_price_rows(rows, repair_report, interval:, timeout:)
       rows.each_with_index do |row, index|
         next unless row[:volume].to_i.positive?
 
-        repaired_columns = PRICE_COLUMNS.filter_map do |column|
-          next unless zero_or_missing_price?(row[column])
+        missing_columns = PRICE_COLUMNS.select { |column| zero_or_missing_price?(row[column]) }
+        next if missing_columns.empty?
 
+        repaired_columns = missing_columns.filter_map do |column|
           replacement = interpolate_price(rows, index, column)
           next unless replacement
 
           row[column] = replacement
           column
         end
+        if repaired_columns.length == missing_columns.length
+          record_repair(row, repair_report, :missing_price, repaired_columns)
+          next
+        end
+
+        reconstruction = reconstruct_missing_price_row(row, interval: interval, timeout: timeout)
+        if reconstruction
+          columns = reconstruction.filter_map do |column, value|
+            next unless (missing_columns.include?(column) || column == :volume) && !value.nil?
+
+            row[column] = value
+            column
+          end
+          record_repair(row, repair_report, :missing_price_reconstruction, columns) unless columns.empty?
+          next
+        end
+
         record_repair(row, repair_report, :missing_price, repaired_columns) unless repaired_columns.empty?
       end
     end
@@ -994,6 +1014,53 @@ module Ryfinance
     def zero_or_missing_price?(value)
       numeric = numeric_value(value)
       numeric.nil? || numeric.zero?
+    end
+
+    def reconstruct_missing_price_row(row, interval:, timeout:)
+      return nil unless interval.to_s == "1d"
+
+      start_time = row[:date]
+      return nil unless start_time.is_a?(Time)
+
+      result = @client.chart(
+        @ticker,
+        params: {
+          period1: start_time.to_i,
+          period2: (start_time + 86_400).to_i,
+          interval: "1h",
+          includePrePost: false,
+          events: "div,splits,capitalGains"
+        },
+        timeout: timeout
+      )
+      quote = result.dig("indicators", "quote", 0) || {}
+      adjclose = result.dig("indicators", "adjclose", 0, "adjclose") || []
+      timestamps = result.fetch("timestamp", [])
+      fine_rows = timestamps.each_index.filter_map do |index|
+        close = value_at(quote, "close", index)
+        next unless numeric_value(close)&.positive?
+
+        {
+          open: value_at(quote, "open", index),
+          high: value_at(quote, "high", index),
+          low: value_at(quote, "low", index),
+          close: close,
+          adj_close: adjclose[index],
+          volume: value_at(quote, "volume", index).to_i
+        }
+      end
+      return nil if fine_rows.empty?
+
+      {
+        open: fine_rows.first[:open],
+        high: fine_rows.filter_map { |fine_row| numeric_value(fine_row[:high]) }.max,
+        low: fine_rows.filter_map { |fine_row| numeric_value(fine_row[:low]) }.min,
+        close: fine_rows.last[:close],
+        adj_close: fine_rows.reverse.filter_map { |fine_row| fine_row[:adj_close] || fine_row[:close] }.first,
+        volume: fine_rows.sum { |fine_row| fine_row[:volume] }
+      }
+    rescue StandardError
+      nil
     end
 
     def interpolate_price(rows, index, column)

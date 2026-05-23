@@ -250,9 +250,9 @@ Returns a `Ryfinance::Table` with columns:
 
 When `repair: true`, `metadata[:repairs]` contains a per-row summary of repair
 actions. Repair passes currently cover 100x currency/unit mixups, zero or
-missing traded prices, bad split adjustment jumps, missing dividend and
-capital-gain adjustments, OHLC bound violations, and dividend/capital-gain unit
-mixups.
+missing traded prices, fine-interval reconstruction for missing daily prices,
+bad split adjustment jumps, missing dividend and capital-gain adjustments, OHLC
+bound violations, and dividend/capital-gain unit mixups.
 
 By default, Yahoo-side history errors return an empty table with
 `metadata[:error]`, `metadata[:error_class]`, and `metadata[:error_message]`.

@@ -115,9 +115,10 @@ the symbol or range. Pass `raise_errors: true` for strict exception behavior.
 
 Pass `repair: true` to run yfinance-style price repair passes before adjustment.
 Current repairs cover 100x currency/unit mixups, zero or missing traded prices,
-bad split adjustment jumps, missing dividend and capital-gain adjustments, OHLC
-bound violations, and dividend/capital-gain unit mixups. Repaired tables include
-`:repaired` and `:repair_actions` columns, plus a `metadata[:repairs]` summary.
+fine-interval reconstruction for missing daily prices, bad split adjustment
+jumps, missing dividend and capital-gain adjustments, OHLC bound violations, and
+dividend/capital-gain unit mixups. Repaired tables include `:repaired` and
+`:repair_actions` columns, plus a `metadata[:repairs]` summary.
 
 ## Corporate Actions
 

@@ -206,7 +206,8 @@ Live streaming:
 - `repair: true` runs yfinance-style repair passes and adds `:repaired` /
   `:repair_actions` columns plus `metadata[:repairs]`; yfinance exposes this as
   a `Repaired?` column. Dividend and capital-gain distributions both participate
-  in adjusted-close repair checks.
+  in adjusted-close repair checks. Daily missing price rows can be reconstructed
+  from Yahoo fine-interval chart data when neighbor interpolation is not enough.
 - `Ticker#history` follows yfinance's non-raising default for Yahoo-side
   failures and returns an empty table with `metadata[:error]`. Pass
   `raise_errors: true` for strict behavior.
