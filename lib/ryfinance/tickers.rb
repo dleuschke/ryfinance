@@ -17,8 +17,16 @@ module Ryfinance
     end
 
     def history(**options)
-      tables = @tickers.transform_values { |ticker| ticker.history(**options) }
-      DownloadResult.new(tables, group_by: options.fetch(:group_by, "ticker"))
+      tables = {}
+      errors = {}
+
+      @tickers.each do |symbol, ticker|
+        table = ticker.history(**options)
+        tables[symbol] = table
+        errors[symbol] = table.metadata[:error] if table.metadata.key?(:error)
+      end
+
+      DownloadResult.new(tables, group_by: options.fetch(:group_by, "ticker"), errors: errors)
     end
 
     def download(**options)

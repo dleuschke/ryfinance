@@ -436,6 +436,10 @@ tickers.download(period: "1y")
 tickers.live(verbose: false) { |quote| puts quote }
 ```
 
+`Tickers#history` returns a `Ryfinance::DownloadResult`. Yahoo-side failures are
+captured in `result.errors`, `result.failed_tickers`, and the failed ticker's
+empty table metadata. Pass `raise_errors: true` to raise the first ticker error.
+
 ## `Ryfinance::Market`
 
 Market status and summary rows for Yahoo market groups.

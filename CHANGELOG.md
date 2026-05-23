@@ -13,6 +13,7 @@ All notable changes to RYFinance are documented here.
 - Added threaded multi-ticker downloads and structured progress callbacks.
 - Added yfinance-style multi-ticker download failure capture with `raise_errors:`.
 - Added yfinance-style `Ticker#history(raise_errors:)` failure handling.
+- Added per-ticker error aggregation to `Tickers#history`.
 - Added Yahoo ticker news stream tabs through `Ticker#news`.
 - Added ETF and mutual fund data through `Ticker#funds_data`.
 - Added earnings calendar dates through `Ticker#earnings_dates`.

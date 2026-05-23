@@ -143,6 +143,9 @@ data.to_a.first
 #=> {:date=>..., :"MSFT.close"=>..., :"AAPL.close"=>...}
 ```
 
+`Ryfinance::Tickers.new("MSFT AAPL").history` also returns a `DownloadResult`
+and preserves per-ticker failures in `errors` and `failed_tickers`.
+
 For one ticker, `Ryfinance.download("MSFT")` returns a `Ryfinance::Table` by
 default. Pass `multi_level_index: true` if you always want a `DownloadResult`.
 Multi-ticker downloads use worker threads by default. Pass `threads: false` for

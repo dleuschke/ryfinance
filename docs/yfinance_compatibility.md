@@ -208,6 +208,8 @@ Live streaming:
 - `Ticker#history` follows yfinance's non-raising default for Yahoo-side
   failures and returns an empty table with `metadata[:error]`. Pass
   `raise_errors: true` for strict behavior.
+- `Tickers#history` returns a `DownloadResult` with the same per-ticker
+  `errors`, `failed_tickers`, and `successful_tickers` helpers as `download`.
 - Time values are returned as UTC `Time` objects.
 - `download` honors `threads:` for concurrent multi-ticker requests and
   `progress:` for per-ticker completion events. Like yfinance, batch downloads
