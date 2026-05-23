@@ -49,6 +49,13 @@ Core:
 - `download`
 - `Search`
 - `Market#summary`
+- `Sector`
+- `Industry`
+- `EquityQuery`
+- `FundQuery`
+- `ETFQuery`
+- `screen`
+- `set_tz_cache_location`
 
 Ticker stock data:
 
@@ -104,6 +111,36 @@ Options:
 - `options`
 - `option_chain`
 
+Sector and industry data:
+
+- `Sector#name`
+- `Sector#symbol`
+- `Sector#ticker`
+- `Sector#overview`
+- `Sector#top_companies`
+- `Sector#research_reports`
+- `Sector#top_etfs`
+- `Sector#top_mutual_funds`
+- `Sector#industries`
+- `Industry#name`
+- `Industry#symbol`
+- `Industry#ticker`
+- `Industry#overview`
+- `Industry#top_companies`
+- `Industry#research_reports`
+- `Industry#sector_key`
+- `Industry#sector_name`
+- `Industry#top_growth_companies`
+- `Industry#top_performing_companies`
+
+Screeners:
+
+- `PREDEFINED_SCREENER_QUERIES`
+- `EquityQuery`
+- `FundQuery`
+- `ETFQuery`
+- `screen`
+
 ## Differences From Python yfinance
 
 - Ruby keyword arguments use `start:` and `end:`. `end:` is accepted even though
@@ -114,8 +151,8 @@ Options:
 - `threads`, `progress`, and `ignore_tz` are accepted by `download` for API
   familiarity but are currently ignored.
 - WebSocket streaming is not implemented.
-- Screener query builder classes are not implemented.
-- Sector and industry domain classes are not implemented.
+- Screener query field coverage is focused on common Yahoo fields and the
+  predefined screens; custom field names can still be sent through query objects.
 - `isin` does not scrape third party websites. It only returns an ISIN if Yahoo
   provides one in quote data.
 
@@ -171,14 +208,49 @@ msft.balance_sheet
 msft.quarterly_income_stmt
 ```
 
+### Screener
+
+Python:
+
+```python
+from yfinance import EquityQuery
+q = EquityQuery("and", [
+    EquityQuery("gt", ["percentchange", 3]),
+    EquityQuery("eq", ["region", "us"]),
+])
+response = yf.screen(q, sortField="percentchange", sortAsc=True)
+```
+
+Ruby:
+
+```ruby
+query = Ryfinance::EquityQuery.new("and", [
+  Ryfinance::EquityQuery.new("gt", ["percentchange", 3]),
+  Ryfinance::EquityQuery.new("eq", ["region", "us"])
+])
+response = Ryfinance.screen(query, sort_field: "percentchange", sort_asc: true)
+```
+
+### Sector and Industry
+
+Python:
+
+```python
+technology = yf.Sector("technology")
+technology.industries
+```
+
+Ruby:
+
+```ruby
+technology = Ryfinance.Sector("technology")
+technology.industries
+```
+
 ## Compatibility Roadmap
 
 The remaining yfinance features to port are:
 
 - WebSocket and AsyncWebSocket streaming
-- Screener query builder classes
-- Sector and industry domain classes
 - Price repair heuristics for currency unit mixups
-- Timezone cache configuration
 - Optional crumb/cookie strategies for Yahoo endpoints if Yahoo tightens access
-

@@ -8,7 +8,7 @@ RYFinance is a Ruby gem for Yahoo Finance data with an API shaped after Python's
 - Quote info, fast quote data, recommendations, analyst targets, and calendar data
 - Historical OHLCV rows with dividends, splits, and capital gains
 - Options expiration dates and option chains
-- Search and market summary helpers
+- Search, screener, market, sector, and industry helpers
 
 RYFinance is not affiliated with Yahoo, Yahoo Finance, or the Python `yfinance`
 project. Yahoo Finance is intended for personal, research, and educational use;
@@ -182,6 +182,49 @@ market = Ryfinance.market(region: "US")
 market.summary
 ```
 
+## Screeners
+
+Run Yahoo's predefined screens:
+
+```ruby
+gainers = Ryfinance.screen("day_gainers", count: 25)
+gainers[:quotes].map { |quote| quote[:symbol] }
+```
+
+Build custom screens with yfinance-style query objects:
+
+```ruby
+query = Ryfinance::EquityQuery.new("and", [
+  Ryfinance::EquityQuery.new("gt", ["percentchange", 3]),
+  Ryfinance::EquityQuery.new("eq", ["region", "us"])
+])
+
+Ryfinance.screen(query, sort_field: "percentchange", sort_asc: true)
+```
+
+`Ryfinance::FundQuery` and `Ryfinance::ETFQuery` are also available. The
+predefined query map is exposed as `Ryfinance::PREDEFINED_SCREENER_QUERIES`.
+
+## Sectors and Industries
+
+```ruby
+technology = Ryfinance.sector("technology")
+
+technology.name
+technology.overview
+technology.top_companies
+technology.top_etfs
+technology.top_mutual_funds
+technology.industries
+
+software = Ryfinance.industry("software-infrastructure")
+software.sector_name
+software.top_growth_companies
+software.top_performing_companies
+```
+
+Sector and industry tables use `Ryfinance::Table`, like historical price data.
+
 ## Table API
 
 `Ryfinance::Table` is intentionally simple and Ruby-native:
@@ -218,6 +261,17 @@ post(uri, headers:, body:, timeout:)
 and return either `Ryfinance::Response` or a hash with `:code`, `:body`, and
 optional `:headers`.
 
+## Timezone Cache
+
+`set_tz_cache_location` stores exchange timezone metadata learned from history
+responses in a small JSON cache:
+
+```ruby
+Ryfinance.set_tz_cache_location(".ryfinance-cache")
+Ryfinance.Ticker("MSFT").history(period: "1d")
+Ryfinance.timezone_cache.get("MSFT")
+```
+
 ## Compatibility Notes
 
 RYFinance mirrors yfinance names where Ruby can express them cleanly, and it also
@@ -226,4 +280,3 @@ uses Ruby-style snake_case keys. Python's Pandas `DataFrame` is represented by
 
 See [docs/api.md](docs/api.md) and
 [docs/yfinance_compatibility.md](docs/yfinance_compatibility.md) for details.
-

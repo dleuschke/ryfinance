@@ -88,6 +88,7 @@ module Ryfinance
 
       result = @client.chart(@ticker, params: params, timeout: timeout)
       @last_history_metadata = Utils.deep_symbolize(Utils.unwrap_value(result.fetch("meta", {})))
+      Ryfinance.timezone_cache.set(@ticker, @last_history_metadata[:exchange_timezone_name])
 
       table_from_chart(
         result,
@@ -663,4 +664,3 @@ module Ryfinance
     end
   end
 end
-

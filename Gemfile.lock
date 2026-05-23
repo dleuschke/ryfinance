@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    ryfinance (0.1.0)
+    ryfinance (0.2.0)
       csv (>= 3.0, < 4)
       json (>= 2.0, < 3)
       net-http (>= 0.4, < 1)
@@ -38,7 +38,7 @@ CHECKSUMS
   net-http (0.8.0)
   prism (1.9.0)
   rake (13.4.2)
-  ryfinance (0.1.0)
+  ryfinance (0.2.0)
   uri (1.1.1)
 
 BUNDLED WITH

@@ -2,6 +2,7 @@
 
 require "json"
 require "minitest/autorun"
+require "tmpdir"
 require "ryfinance"
 
 class FakeTransport
@@ -170,6 +171,81 @@ def options_fixture
         }
       ],
       "error" => nil
+    }
+  }
+end
+
+def screener_fixture
+  {
+    "finance" => {
+      "result" => [
+        {
+          "count" => 1,
+          "quotes" => [
+            {
+              "symbol" => "MSFT",
+              "shortName" => "Microsoft Corporation",
+              "regularMarketPrice" => { "raw" => 420.25, "fmt" => "420.25" }
+            }
+          ]
+        }
+      ],
+      "error" => nil
+    }
+  }
+end
+
+def sector_fixture
+  {
+    "data" => {
+      "name" => "Technology",
+      "symbol" => "^YH101",
+      "overview" => {
+        "companiesCount" => 800,
+        "marketCap" => { "raw" => 12_000_000_000_000 },
+        "marketWeight" => { "raw" => 0.31 }
+      },
+      "topCompanies" => [
+        { "symbol" => "MSFT", "name" => "Microsoft", "rating" => "Buy", "marketWeight" => { "raw" => 0.08 } }
+      ],
+      "topETFs" => [
+        { "symbol" => "XLK", "name" => "Technology Select Sector SPDR Fund" }
+      ],
+      "topMutualFunds" => [
+        { "symbol" => "VITAX", "name" => "Vanguard Information Technology Index" }
+      ],
+      "industries" => [
+        { "key" => "all-industries", "name" => "All Industries", "symbol" => "^YH0", "marketWeight" => { "raw" => 1.0 } },
+        { "key" => "software-infrastructure", "name" => "Software - Infrastructure", "symbol" => "^YH101-010", "marketWeight" => { "raw" => 0.12 } }
+      ],
+      "researchReports" => [
+        { "title" => "Technology outlook", "provider" => "Example" }
+      ]
+    }
+  }
+end
+
+def industry_fixture
+  {
+    "data" => {
+      "name" => "Software - Infrastructure",
+      "symbol" => "^YH101-010",
+      "sectorKey" => "technology",
+      "sectorName" => "Technology",
+      "overview" => {
+        "companiesCount" => 120,
+        "marketCap" => { "raw" => 3_000_000_000_000 }
+      },
+      "topCompanies" => [
+        { "symbol" => "MSFT", "name" => "Microsoft", "rating" => "Buy", "marketWeight" => { "raw" => 0.22 } }
+      ],
+      "topGrowthCompanies" => [
+        { "symbol" => "DDOG", "name" => "Datadog", "rating" => "Hold", "marketWeight" => { "raw" => 0.02 } }
+      ],
+      "topPerformingCompanies" => [
+        { "symbol" => "PLTR", "name" => "Palantir", "rating" => "Buy", "marketWeight" => { "raw" => 0.04 } }
+      ],
+      "researchReports" => []
     }
   }
 end

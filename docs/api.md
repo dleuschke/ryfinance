@@ -1,6 +1,6 @@
 # API Reference
 
-This document lists the public API provided by RYFinance 0.1.0.
+This document lists the public API provided by RYFinance 0.2.0.
 
 ## Module Functions
 
@@ -57,6 +57,61 @@ Options:
 
 Returns a `Ryfinance::Market` object. Call `#summary` to fetch market summary
 rows.
+
+### `Ryfinance.sector(key, session: nil, client: nil)`
+
+Returns a `Ryfinance::Sector`.
+
+```ruby
+Ryfinance.sector("technology")
+Ryfinance.Sector("financial-services")
+```
+
+### `Ryfinance.industry(key, session: nil, client: nil)`
+
+Returns a `Ryfinance::Industry`.
+
+```ruby
+Ryfinance.industry("software-infrastructure")
+Ryfinance.Industry("semiconductors")
+```
+
+### `Ryfinance.screen(query, **options)`
+
+Runs a predefined or custom Yahoo screener.
+
+```ruby
+Ryfinance.screen("day_gainers", count: 25)
+
+query = Ryfinance::EquityQuery.new("and", [
+  Ryfinance::EquityQuery.new("gt", ["percentchange", 3]),
+  Ryfinance::EquityQuery.new("eq", ["region", "us"])
+])
+Ryfinance.screen(query, sort_field: "percentchange", sort_asc: true)
+```
+
+Options:
+
+- `offset:`
+- `size:`
+- `count:`
+- `sortField:` or `sort_field:`
+- `sortAsc:` or `sort_asc:`
+- `userId:` or `user_id:`
+- `userIdType:` or `user_id_type:`
+- `timeout:`
+
+Predefined screen names are available through
+`Ryfinance::PREDEFINED_SCREENER_QUERIES.keys`.
+
+### `Ryfinance.set_tz_cache_location(path)`
+
+Configures a JSON timezone metadata cache. Set `nil` to disable it.
+
+```ruby
+Ryfinance.set_tz_cache_location(".ryfinance-cache")
+Ryfinance.timezone_cache.get("MSFT")
+```
 
 ## `Ryfinance::Ticker`
 
@@ -196,6 +251,64 @@ tickers.history(period: "5d")
 tickers.download(period: "1y")
 ```
 
+## `Ryfinance::EquityQuery`, `FundQuery`, and `ETFQuery`
+
+Query builders serialize to Yahoo screener query hashes.
+
+```ruby
+Ryfinance::EquityQuery.new("gt", ["percentchange", 3])
+Ryfinance::FundQuery.new("eq", ["categoryname", "Large Blend"])
+Ryfinance::ETFQuery.new("eq", ["region", "us"])
+```
+
+Supported operators:
+
+- `eq`
+- `is-in`
+- `btwn`
+- `gt`
+- `lt`
+- `gte`
+- `lte`
+- `and`
+- `or`
+
+`valid_fields` and `valid_values` expose the common Yahoo fields documented for
+each asset class.
+
+## `Ryfinance::Sector`
+
+```ruby
+sector = Ryfinance::Sector.new("technology")
+sector.key
+sector.name
+sector.symbol
+sector.ticker
+sector.overview
+sector.top_companies
+sector.research_reports
+sector.top_etfs
+sector.top_mutual_funds
+sector.industries
+```
+
+## `Ryfinance::Industry`
+
+```ruby
+industry = Ryfinance::Industry.new("software-infrastructure")
+industry.key
+industry.name
+industry.symbol
+industry.ticker
+industry.overview
+industry.top_companies
+industry.research_reports
+industry.sector_key
+industry.sector_name
+industry.top_growth_companies
+industry.top_performing_companies
+```
+
 ## `Ryfinance::Table`
 
 `Table` is an enumerable wrapper around row hashes.
@@ -221,4 +334,3 @@ All gem-specific errors inherit from `Ryfinance::Error`.
 - `Ryfinance::YahooError`
 - `Ryfinance::NotFoundError`
 - `Ryfinance::UnsupportedFeatureError`
-

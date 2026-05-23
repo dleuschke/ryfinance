@@ -141,6 +141,38 @@ module Ryfinance
       )
     end
 
+    def screen_predefined(query, params: {}, timeout: 10)
+      data = get_json(
+        "/v1/finance/screener/predefined/saved",
+        base: QUERY1_URL,
+        params: default_screener_params.merge(scrIds: query).merge(params),
+        timeout: timeout
+      )
+
+      data.dig("finance", "result")&.first || {}
+    end
+
+    def screen(body, params: {}, timeout: 10)
+      data = post_json(
+        "/v1/finance/screener",
+        base: QUERY1_URL,
+        params: default_screener_params.merge(params),
+        body: body,
+        timeout: timeout
+      )
+
+      data.dig("finance", "result")&.first || {}
+    end
+
+    def domain(type, key, timeout: 10)
+      get_json(
+        "/v1/finance/#{escape_path(type)}/#{escape_path(key)}",
+        base: QUERY1_URL,
+        params: { formatted: "true", withReturns: "true", lang: "en-US", region: "US" },
+        timeout: timeout
+      )
+    end
+
     def get_json(path, base: BASE_URL, params: {}, timeout: 10)
       response = get(path, base: base, params: params, timeout: timeout)
       JSON.parse(response.body)
@@ -169,6 +201,15 @@ module Ryfinance
       encoded = URI.encode_www_form(clean_params)
       uri.query = [uri.query, encoded].compact.reject(&:empty?).join("&")
       uri
+    end
+
+    def default_screener_params
+      {
+        corsDomain: "finance.yahoo.com",
+        formatted: "false",
+        lang: "en-US",
+        region: "US"
+      }
     end
 
     def normalize_response(response, uri)
@@ -208,4 +249,3 @@ module Ryfinance
     end
   end
 end
-
