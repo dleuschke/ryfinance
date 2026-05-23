@@ -100,6 +100,64 @@ module Ryfinance
       "news" => "latestNews",
       "press releases" => "pressRelease"
     }.freeze
+    FUNDAMENTALS_TIMESERIES_KEYS = {
+      income: %w[
+        TaxEffectOfUnusualItems TaxRateForCalcs NormalizedEBITDA NormalizedDilutedEPS
+        NormalizedBasicEPS TotalUnusualItems TotalUnusualItemsExcludingGoodwill
+        NetIncomeFromContinuingOperationNetMinorityInterest ReconciledDepreciation
+        ReconciledCostOfRevenue EBITDA EBIT NetInterestIncome InterestExpense
+        InterestIncome ContinuingAndDiscontinuedDilutedEPS ContinuingAndDiscontinuedBasicEPS
+        NormalizedIncome NetIncomeFromContinuingAndDiscontinuedOperation TotalExpenses
+        TotalOperatingIncomeAsReported DilutedAverageShares BasicAverageShares DilutedEPS
+        BasicEPS DilutedNIAvailtoComStockholders NetIncomeCommonStockholders NetIncome
+        NetIncomeIncludingNoncontrollingInterests NetIncomeContinuousOperations TaxProvision
+        PretaxIncome OtherIncomeExpense SpecialIncomeCharges OperatingIncome OperatingExpense
+        ResearchAndDevelopment SellingGeneralAndAdministration GrossProfit CostOfRevenue
+        TotalRevenue OperatingRevenue
+      ],
+      balance_sheet: %w[
+        TreasurySharesNumber OrdinarySharesNumber ShareIssued NetDebt TotalDebt
+        TangibleBookValue InvestedCapital WorkingCapital NetTangibleAssets
+        CommonStockEquity TotalCapitalization TotalEquityGrossMinorityInterest
+        MinorityInterest StockholdersEquity RetainedEarnings CapitalStock CommonStock
+        TotalLiabilitiesNetMinorityInterest TotalNonCurrentLiabilitiesNetMinorityInterest
+        LongTermDebtAndCapitalLeaseObligation LongTermDebt CurrentLiabilities
+        CurrentDebtAndCapitalLeaseObligation CurrentDebt PayablesAndAccruedExpenses
+        AccountsPayable TotalAssets TotalNonCurrentAssets InvestmentsAndAdvances
+        GoodwillAndOtherIntangibleAssets OtherIntangibleAssets Goodwill NetPPE
+        AccumulatedDepreciation GrossPPE CurrentAssets Inventory Receivables
+        AccountsReceivable CashCashEquivalentsAndShortTermInvestments
+        OtherShortTermInvestments CashAndCashEquivalents
+      ],
+      cash_flow: %w[
+        FreeCashFlow RepurchaseOfCapitalStock RepaymentOfDebt IssuanceOfDebt
+        IssuanceOfCapitalStock CapitalExpenditure InterestPaidSupplementalData
+        IncomeTaxPaidSupplementalData EndCashPosition BeginningCashPosition
+        EffectOfExchangeRateChanges ChangesInCash FinancingCashFlow
+        CashFlowFromContinuingFinancingActivities NetOtherFinancingCharges CashDividendsPaid
+        CommonStockDividendPaid NetCommonStockIssuance CommonStockPayments
+        CommonStockIssuance NetIssuancePaymentsOfDebt NetShortTermDebtIssuance
+        ShortTermDebtPayments ShortTermDebtIssuance NetLongTermDebtIssuance
+        LongTermDebtPayments LongTermDebtIssuance InvestingCashFlow
+        CashFlowFromContinuingInvestingActivities NetInvestmentPurchaseAndSale
+        SaleOfInvestment PurchaseOfInvestment NetBusinessPurchaseAndSale SaleOfBusiness
+        PurchaseOfBusiness NetPPEPurchaseAndSale SaleOfPPE PurchaseOfPPE
+        CapitalExpenditureReported OperatingCashFlow
+        CashFlowFromContinuingOperatingActivities ChangeInWorkingCapital
+        ChangeInOtherWorkingCapital ChangeInPayablesAndAccruedExpense
+        ChangeInAccountPayable ChangeInInventory ChangeInReceivables
+        ChangesInAccountReceivables StockBasedCompensation DeferredTax
+        DeferredIncomeTax DepreciationAmortizationDepletion DepreciationAndAmortization
+        Depreciation OperatingGainsLosses NetIncomeFromContinuingOperations
+      ]
+    }.freeze
+    FUNDAMENTALS_TIMESCALES = {
+      "yearly" => "annual",
+      "annual" => "annual",
+      "quarterly" => "quarterly",
+      "trailing" => "trailing",
+      "ttm" => "trailing"
+    }.freeze
 
     attr_reader :ticker
 
@@ -115,6 +173,7 @@ module Ryfinance
       @underlying = {}
       @funds_data = nil
       @earnings_dates_cache = {}
+      @financial_statement_cache = {}
     end
 
     def inspect
@@ -417,7 +476,9 @@ module Ryfinance
     alias insider_purchases get_insider_purchases
 
     def get_income_stmt(freq: "yearly", pretty: false, as_dict: false, timeout: 10)
-      table = statement_table(statement_module("incomeStatementHistory", freq), timeout: timeout)
+      table = financial_statement_table(:income, freq: freq, timeout: timeout) do
+        statement_table(statement_module("incomeStatementHistory", freq), timeout: timeout)
+      end
       as_dict ? table.to_h(index: :end_date) : table
     end
     alias get_incomestmt get_income_stmt
@@ -445,7 +506,9 @@ module Ryfinance
     alias ttm_financials ttm_income_stmt
 
     def get_balance_sheet(freq: "yearly", pretty: false, as_dict: false, timeout: 10)
-      table = statement_table(statement_module("balanceSheetHistory", freq), timeout: timeout)
+      table = financial_statement_table(:balance_sheet, freq: freq, timeout: timeout) do
+        statement_table(statement_module("balanceSheetHistory", freq), timeout: timeout)
+      end
       as_dict ? table.to_h(index: :end_date) : table
     end
     alias get_balancesheet get_balance_sheet
@@ -461,7 +524,9 @@ module Ryfinance
     alias quarterly_balancesheet quarterly_balance_sheet
 
     def get_cash_flow(freq: "yearly", pretty: false, as_dict: false, timeout: 10)
-      table = statement_table(statement_module("cashflowStatementHistory", freq), timeout: timeout)
+      table = financial_statement_table(:cash_flow, freq: freq, timeout: timeout) do
+        statement_table(statement_module("cashflowStatementHistory", freq), timeout: timeout)
+      end
       as_dict ? table.to_h(index: :end_date) : table
     end
     alias get_cashflow get_cash_flow
@@ -1105,6 +1170,72 @@ module Ryfinance
       numeric.zero? ? nil : numeric
     rescue ArgumentError, TypeError
       value
+    end
+
+    def financial_statement_table(kind, freq:, timeout:)
+      timescale = statement_timescale(freq, kind)
+      cache_key = [kind, timescale]
+
+      @financial_statement_cache[cache_key] ||= begin
+        table = financial_statement_timeseries_table(kind, timescale: timescale, timeout: timeout)
+        table.empty? && block_given? ? yield : table
+      rescue StandardError
+        block_given? ? yield : Table.new([])
+      end
+    end
+
+    def statement_timescale(freq, kind)
+      timescale = FUNDAMENTALS_TIMESCALES[freq.to_s]
+      raise ArgumentError, "freq must be yearly, quarterly, trailing, or ttm" unless timescale
+      if timescale == "trailing" && kind == :balance_sheet
+        raise ArgumentError, "trailing frequency is only available for income statement and cash flow"
+      end
+
+      timescale
+    end
+
+    def financial_statement_timeseries_table(kind, timescale:, timeout:)
+      keys = FUNDAMENTALS_TIMESERIES_KEYS.fetch(kind)
+      types = keys.map { |key| "#{timescale}#{key}" }
+      data = @client.timeseries(
+        @ticker,
+        types: types,
+        period1: Time.utc(2016, 12, 31).to_i,
+        period2: (Time.now.utc + 86_400).to_i,
+        timeout: timeout
+      )
+      rows_by_date = {}
+      seen_columns = []
+
+      Array(data.dig("timeseries", "result")).each do |entry|
+        metric_key = entry.keys.find { |key| key != "meta" && key != "timestamp" }
+        next unless metric_key
+        next unless types.include?(metric_key)
+
+        column = Utils.symbolize_key(metric_key.delete_prefix(timescale))
+        seen_columns << column unless seen_columns.include?(column)
+        Array(entry[metric_key]).each do |point|
+          date = financial_statement_date(point["asOfDate"] || point[:asOfDate])
+          next unless date
+
+          row = (rows_by_date[date] ||= { end_date: date })
+          row[column] = Utils.unwrap_value(point["reportedValue"] || point[:reportedValue])
+        end
+      end
+
+      rows = rows_by_date.keys.sort.reverse.map { |date| rows_by_date[date] }
+      columns = [:end_date] + seen_columns
+      Table.new(rows, columns: columns, metadata: { source: :timeseries, statement: kind, timescale: timescale })
+    end
+
+    def financial_statement_date(value)
+      return nil if value.nil?
+      return Utils.yahoo_date(value) if value.is_a?(Integer)
+
+      date = Date.iso8601(value.to_s)
+      Time.utc(date.year, date.month, date.day)
+    rescue ArgumentError
+      nil
     end
 
     def statement_module(base, freq)

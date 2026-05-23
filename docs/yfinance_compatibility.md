@@ -228,6 +228,9 @@ Live streaming:
 - `Ticker#earnings_dates` returns a `Ryfinance::Table` with an explicit
   `:earnings_date` column instead of a Pandas datetime index. It accepts
   `limit:`, `offset:`, and `as_dict:`.
+- Financial statement helpers prefer Yahoo's fundamentals-timeseries endpoint,
+  matching yfinance's financials source, and fall back to quote-summary modules
+  for symbols without timeseries rows.
 - `Lookup` methods return `Ryfinance::Table` objects with `:symbol` as an
   ordinary column instead of a Pandas index.
 - `Market#summary` returns a `Ryfinance::Table` instead of yfinance's

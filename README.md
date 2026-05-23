@@ -214,6 +214,9 @@ msft.quarterly_cash_flow
 msft.earnings
 ```
 
+Statement helpers prefer Yahoo's fundamentals-timeseries endpoint, with
+quote-summary fallback for symbols where Yahoo omits timeseries rows.
+
 Shares outstanding:
 
 ```ruby

@@ -19,6 +19,7 @@ All notable changes to RYFinance are documented here.
 - Added Yahoo ticker news stream tabs through `Ticker#news`.
 - Added ETF and mutual fund data through `Ticker#funds_data`.
 - Added earnings calendar dates through `Ticker#earnings_dates`.
+- Switched financial statement helpers to Yahoo fundamentals-timeseries with quote-summary fallback.
 - Added market status through `Ryfinance::Market#status`.
 - Added market-wide Yahoo calendars through `Ryfinance::Calendars`.
 - Expanded opt-in live smoke coverage for chart, quote, and search endpoints.

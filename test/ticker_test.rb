@@ -283,6 +283,47 @@ class TickerTest < Minitest::Test
     assert @ticker.respond_to?(:ttm_income_statement)
   end
 
+  def test_financial_statements_use_fundamentals_timeseries
+    transport = FakeTransport.new
+    transport.route(%r{/ws/fundamentals-timeseries/v1/finance/timeseries/}) { financial_statement_timeseries_fixture }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    statement = ticker.income_statement
+
+    assert_equal %i[end_date total_revenue net_income], statement.columns
+    assert_equal Time.utc(2023, 12, 31), statement.first[:end_date]
+    assert_equal 211_915_000_000, statement.first[:total_revenue]
+    assert_equal 72_361_000_000, statement.first[:net_income]
+    assert_equal :timeseries, statement.metadata[:source]
+    query = URI.decode_www_form(transport.requests.last[:uri].query).to_h
+    assert_includes query["type"], "annualTotalRevenue"
+    assert_includes query["type"], "annualNetIncome"
+  end
+
+  def test_financial_statements_support_quarterly_and_trailing_timescales
+    transport = FakeTransport.new
+    transport.route(%r{/ws/fundamentals-timeseries/v1/finance/timeseries/}) { financial_statement_timeseries_fixture(prefix: "quarterly") }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    ticker.quarterly_income_statement
+
+    query = URI.decode_www_form(transport.requests.last[:uri].query).to_h
+    assert_includes query["type"], "quarterlyTotalRevenue"
+
+    transport = FakeTransport.new
+    transport.route(%r{/ws/fundamentals-timeseries/v1/finance/timeseries/}) { financial_statement_timeseries_fixture(prefix: "trailing") }
+    ticker = Ryfinance::Ticker.new("msft", client: Ryfinance::Client.new(transport: transport))
+
+    ticker.ttm_cash_flow
+
+    query = URI.decode_www_form(transport.requests.last[:uri].query).to_h
+    assert_includes query["type"], "trailingFreeCashFlow"
+  end
+
+  def test_balance_sheet_rejects_trailing_timescale
+    assert_raises(ArgumentError) { @ticker.balance_sheet(freq: "trailing") }
+  end
+
   def test_earnings_dates_parses_visualization_response
     transport = FakeTransport.new
     transport.route(%r{/v1/finance/visualization}) { earnings_dates_fixture }
@@ -350,6 +391,38 @@ class TickerTest < Minitest::Test
           "code" => "Not Found",
           "description" => "No data found for FAIL"
         }
+      }
+    }
+  end
+
+  def financial_statement_timeseries_fixture(prefix: "annual")
+    {
+      "timeseries" => {
+        "result" => [
+          {
+            "meta" => { "type" => ["#{prefix}TotalRevenue"] },
+            "timestamp" => [1_672_444_800, 1_704_067_200],
+            "#{prefix}TotalRevenue" => [
+              { "asOfDate" => "2022-12-31", "reportedValue" => { "raw" => 198_270_000_000 } },
+              { "asOfDate" => "2023-12-31", "reportedValue" => { "raw" => 211_915_000_000 } }
+            ]
+          },
+          {
+            "meta" => { "type" => ["#{prefix}NetIncome"] },
+            "timestamp" => [1_672_444_800, 1_704_067_200],
+            "#{prefix}NetIncome" => [
+              { "asOfDate" => "2022-12-31", "reportedValue" => { "raw" => 72_738_000_000 } },
+              { "asOfDate" => "2023-12-31", "reportedValue" => { "raw" => 72_361_000_000 } }
+            ]
+          },
+          {
+            "meta" => { "type" => ["#{prefix}FreeCashFlow"] },
+            "timestamp" => [1_704_067_200],
+            "#{prefix}FreeCashFlow" => [
+              { "asOfDate" => "2023-12-31", "reportedValue" => { "raw" => 59_475_000_000 } }
+            ]
+          }
+        ]
       }
     }
   end

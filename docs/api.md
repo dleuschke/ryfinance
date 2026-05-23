@@ -395,6 +395,14 @@ ticker.cash_flow(freq: "trailing")
 ticker.earnings(freq: "quarterly")
 ```
 
+Income statement, balance sheet, and cash flow methods prefer Yahoo's
+fundamentals-timeseries endpoint, matching yfinance's financials source, and
+fall back to quote-summary modules when Yahoo returns no timeseries rows.
+Returned rows are keyed by `:end_date`; columns are snake_case versions of
+Yahoo's line-item names such as `:total_revenue`, `:net_income`, and
+`:free_cash_flow`. Trailing frequency is available for income statement and cash
+flow, not balance sheet.
+
 ### Options
 
 ```ruby
