@@ -206,6 +206,20 @@ class TickerTest < Minitest::Test
     assert_equal 7_430_000_000, shares.first[:shares]
   end
 
+  def test_shares_alias_returns_table_and_date_indexed_hash
+    shares = @ticker.shares(start: "2024-01-01", end: "2024-01-02")
+    as_dict = @ticker.get_shares(start: "2024-01-01", end: "2024-01-02", as_dict: true)
+
+    assert_equal [:date, :shares], shares.columns
+    assert_equal 7_430_000_000, shares.first[:shares]
+    assert_equal({ shares: 7_430_000_000 }, as_dict.fetch(Time.utc(2024, 1, 1)))
+
+    query = URI.decode_www_form(@transport.requests.last[:uri].query).to_h
+    assert_equal "shares_out", query["type"]
+    assert_equal "1704067200", query["period1"]
+    assert_equal "1704153600", query["period2"]
+  end
+
   def test_ruby_first_financial_statement_aliases_are_public
     assert @ticker.respond_to?(:income_statement)
     assert @ticker.respond_to?(:quarterly_income_statement)

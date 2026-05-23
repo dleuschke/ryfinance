@@ -91,6 +91,7 @@ Ticker stock data:
 - `get_splits` / `splits`
 - `get_capital_gains` / `capital_gains`
 - `get_actions` / `actions`
+- `get_shares` / `shares`
 - `get_shares_full` / `shares_full`
 
 Ticker quote data:
@@ -217,6 +218,10 @@ Live streaming:
   exchange-keyed dictionary. `Market#status` returns a snake_case hash with
   Ruby `Time` objects for `:open` and `:close`; `:tz` is the timezone short name
   rather than Python's timezone object.
+- `Ticker#shares` returns Yahoo `shares_out` timeseries rows as a
+  `Ryfinance::Table`. The current Python yfinance internals expose
+  `get_shares`, but the fundamentals-backed scraper may raise a not-implemented
+  exception for that dataset.
 - `Ticker#valuation` returns a current `Ryfinance::Table` snapshot from Yahoo's
   structured quote-summary data. yfinance's `get_valuation_measures` scrapes the
   key-statistics page and may expose historical columns when Yahoo renders them.

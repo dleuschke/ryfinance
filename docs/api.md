@@ -360,9 +360,16 @@ ticker.option_chain("2026-01-16")
 ### Shares and ISIN
 
 ```ruby
+ticker.shares
+ticker.shares(as_dict: true)
 ticker.shares_full(start: "2024-01-01", end: "2024-12-31")
 ticker.isin
 ```
+
+`shares` / `get_shares` returns a `Ryfinance::Table` with `:date` and `:shares`
+columns from Yahoo's `shares_out` timeseries. Pass `as_dict: true` to return a
+date-indexed hash. `shares_full` accepts the same date range keywords and always
+returns a table.
 
 `isin` returns Yahoo-provided ISIN data when present. It does not scrape third
 party websites.
@@ -748,6 +755,7 @@ compatibility. New Ruby code should prefer the canonical names above.
 | `get_funds_data` | `funds_data` |
 | `get_options` | `options` |
 | `get_news` | `news` |
+| `get_shares` | `shares` |
 | `get_shares_full` | `shares_full` |
 | `get_isin` | `isin` |
 

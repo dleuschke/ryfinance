@@ -13,6 +13,7 @@ All notable changes to RYFinance are documented here.
 - Added earnings calendar dates through `Ticker#earnings_dates`.
 - Added market status through `Ryfinance::Market#status`.
 - Added market-wide Yahoo calendars through `Ryfinance::Calendars`.
+- Added shares outstanding through `Ticker#shares`.
 - Added typed instrument lookup through `Ryfinance::Lookup`.
 - Added valuation snapshot data through `Ticker#valuation`.
 - Fixed CI dependency resolution on Ruby 3.1 by constraining async runtime and test dependencies.

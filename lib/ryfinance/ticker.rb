@@ -509,6 +509,12 @@ module Ryfinance
     end
     alias news get_news
 
+    def get_shares(as_dict: false, **options)
+      table = get_shares_full(**options)
+      as_dict ? table.to_h(index: :date) : table
+    end
+    alias shares get_shares
+
     def get_shares_full(start: nil, end_date: nil, timeout: 10, **options)
       finish = options.key?(:end) ? options[:end] : end_date
       period2 = Utils.to_timestamp(finish || Time.now)

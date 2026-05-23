@@ -183,6 +183,13 @@ msft.quarterly_cash_flow
 msft.earnings
 ```
 
+Shares outstanding:
+
+```ruby
+msft.shares
+msft.shares_full(start: "2024-01-01", end: "2024-12-31")
+```
+
 Yahoo returns these datasets with different coverage by ticker and asset type.
 When Yahoo omits a module, RYFinance returns an empty table or hash instead of
 inventing values.
