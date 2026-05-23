@@ -29,6 +29,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "async", ">= 2.0", "< 3"
   spec.add_dependency "async-websocket", ">= 0.25", "< 1"
   spec.add_dependency "console", ">= 1.29", "< 1.31"
+  spec.add_dependency "io-event", ">= 1.11", "< 1.12"
   spec.add_dependency "base64", ">= 0.2", "< 1"
   spec.add_dependency "google-protobuf", ">= 4.0", "< 5"
 end
