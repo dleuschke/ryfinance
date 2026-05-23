@@ -1,7 +1,9 @@
 # RYFinance
 
-RYFinance is a Ruby gem for Yahoo Finance data with an API shaped after Python's
-`yfinance`. It focuses on the workflows most users reach for first:
+RYFinance is a Ruby-first gem for Yahoo Finance data. It ports the practical
+surface area of Python's `yfinance`, but the primary API is designed around Ruby
+classes, keyword arguments, blocks, and `Enumerable`-friendly data structures.
+It focuses on the workflows most users reach for first:
 
 - Single ticker access through `Ryfinance::Ticker`
 - Multi-ticker history downloads through `Ryfinance.download`
@@ -59,6 +61,10 @@ You can also use top-level constructors that mirror Python `yfinance` naming:
 msft = Ryfinance.Ticker("MSFT")
 tickers = Ryfinance.Tickers("MSFT AAPL GOOG")
 ```
+
+Those constructors are compatibility shims. New Ruby code should prefer
+`Ryfinance::Ticker.new`, `Ryfinance::Tickers.new`, or the lowercase helpers
+`Ryfinance.ticker` and `Ryfinance.tickers`.
 
 ## Historical Data
 
@@ -146,8 +152,8 @@ msft.sustainability
 Financial statement helpers:
 
 ```ruby
-msft.income_stmt
-msft.quarterly_income_stmt
+msft.income_statement
+msft.quarterly_income_statement
 msft.balance_sheet
 msft.quarterly_balance_sheet
 msft.cash_flow
@@ -203,7 +209,7 @@ end
 Ticker helpers subscribe for you:
 
 ```ruby
-Ryfinance.Ticker("MSFT").live(verbose: false) do |quote|
+Ryfinance::Ticker.new("MSFT").live(verbose: false) do |quote|
   puts quote
 end
 ```
@@ -235,7 +241,7 @@ gainers = Ryfinance.screen("day_gainers", count: 25)
 gainers[:quotes].map { |quote| quote[:symbol] }
 ```
 
-Build custom screens with yfinance-style query objects:
+Build custom screens with query objects:
 
 ```ruby
 query = Ryfinance::EquityQuery.new("and", [
@@ -324,15 +330,17 @@ responses in a small JSON cache:
 
 ```ruby
 Ryfinance.set_tz_cache_location(".ryfinance-cache")
-Ryfinance.Ticker("MSFT").history(period: "1d")
+Ryfinance::Ticker.new("MSFT").history(period: "1d")
 Ryfinance.timezone_cache.get("MSFT")
 ```
 
 ## Compatibility Notes
 
-RYFinance mirrors yfinance names where Ruby can express them cleanly, and it also
-uses Ruby-style snake_case keys. Python's Pandas `DataFrame` is represented by
-`Ryfinance::Table`.
+RYFinance keeps yfinance-style names where they help migration, but those names
+are treated as a compatibility layer. The canonical API uses direct class
+construction, lowercase module helpers, Ruby keyword arguments, block-based
+streaming, snake_case symbol keys, and `Ryfinance::Table` instead of Pandas
+`DataFrame`.
 
 See [docs/api.md](docs/api.md) and
 [docs/yfinance_compatibility.md](docs/yfinance_compatibility.md) for details.

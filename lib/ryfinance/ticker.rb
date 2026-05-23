@@ -328,21 +328,24 @@ module Ryfinance
     alias get_incomestmt get_income_stmt
     alias get_financials get_income_stmt
 
-    def income_stmt
-      get_income_stmt(pretty: true)
+    def income_statement(**options)
+      get_income_stmt(pretty: true, **options)
     end
+    alias income_stmt income_statement
     alias incomestmt income_stmt
     alias financials income_stmt
 
-    def quarterly_income_stmt
-      get_income_stmt(freq: "quarterly", pretty: true)
+    def quarterly_income_statement(**options)
+      get_income_stmt(freq: "quarterly", pretty: true, **options)
     end
+    alias quarterly_income_stmt quarterly_income_statement
     alias quarterly_incomestmt quarterly_income_stmt
     alias quarterly_financials quarterly_income_stmt
 
-    def ttm_income_stmt
-      get_income_stmt(freq: "trailing", pretty: true)
+    def ttm_income_statement(**options)
+      get_income_stmt(freq: "trailing", pretty: true, **options)
     end
+    alias ttm_income_stmt ttm_income_statement
     alias ttm_incomestmt ttm_income_stmt
     alias ttm_financials ttm_income_stmt
 
@@ -352,13 +355,13 @@ module Ryfinance
     end
     alias get_balancesheet get_balance_sheet
 
-    def balance_sheet
-      get_balance_sheet(pretty: true)
+    def balance_sheet(**options)
+      get_balance_sheet(pretty: true, **options)
     end
     alias balancesheet balance_sheet
 
-    def quarterly_balance_sheet
-      get_balance_sheet(freq: "quarterly", pretty: true)
+    def quarterly_balance_sheet(**options)
+      get_balance_sheet(freq: "quarterly", pretty: true, **options)
     end
     alias quarterly_balancesheet quarterly_balance_sheet
 
@@ -368,18 +371,18 @@ module Ryfinance
     end
     alias get_cashflow get_cash_flow
 
-    def cash_flow
-      get_cash_flow(pretty: true)
+    def cash_flow(**options)
+      get_cash_flow(pretty: true, **options)
     end
     alias cashflow cash_flow
 
-    def quarterly_cash_flow
-      get_cash_flow(freq: "quarterly", pretty: true)
+    def quarterly_cash_flow(**options)
+      get_cash_flow(freq: "quarterly", pretty: true, **options)
     end
     alias quarterly_cashflow quarterly_cash_flow
 
-    def ttm_cash_flow
-      get_cash_flow(freq: "trailing", pretty: true)
+    def ttm_cash_flow(**options)
+      get_cash_flow(freq: "trailing", pretty: true, **options)
     end
     alias ttm_cashflow ttm_cash_flow
 
@@ -391,8 +394,8 @@ module Ryfinance
     end
     alias earnings get_earnings
 
-    def quarterly_earnings
-      get_earnings(freq: "quarterly")
+    def quarterly_earnings(**options)
+      get_earnings(freq: "quarterly", **options)
     end
 
     def get_options(timeout: 10)
@@ -451,6 +454,7 @@ module Ryfinance
 
       Table.new(rows, columns: %i[date shares])
     end
+    alias shares_full get_shares_full
 
     def get_isin
       return "-" if @ticker.include?("-") || @ticker.include?("^")

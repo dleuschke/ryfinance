@@ -1,7 +1,9 @@
 # yfinance Compatibility
 
-RYFinance aims to make Ruby code feel familiar to Python `yfinance` users while
-staying idiomatic in Ruby.
+RYFinance keeps enough yfinance-shaped API surface to make migration easy, but
+the canonical API is Ruby-first. Prefer direct class construction, lowercase
+module helpers, snake_case keyword arguments, block callbacks, and
+`Ryfinance::Table` objects in new Ruby code.
 
 ## Naming
 
@@ -17,14 +19,14 @@ Ruby:
 
 ```ruby
 require "ryfinance"
-msft = Ryfinance.Ticker("MSFT")
+msft = Ryfinance::Ticker.new("MSFT")
 hist = msft.history(period: "1mo")
 ```
 
-Ruby also supports direct class construction:
+For line-by-line ports, RYFinance also keeps yfinance-style constructor shims:
 
 ```ruby
-msft = Ryfinance::Ticker.new("MSFT")
+msft = Ryfinance.Ticker("MSFT")
 ```
 
 ## DataFrame Replacement
@@ -40,24 +42,25 @@ yfinance returns Pandas `DataFrame` and `Series` objects. RYFinance returns
 | `df.to_csv()` | `table.to_csv` |
 | `df.to_dict()` | `table.to_a` or `table.to_h` |
 
-## Implemented API Surface
+## Compatibility Surface
 
-Core:
+The full canonical API is documented in [api.md](api.md). The yfinance-oriented
+compatibility layer includes:
 
-- `Ticker`
-- `Tickers`
+Core constructor and module shims:
+
+- `Ryfinance.Ticker`
+- `Ryfinance.Tickers`
+- `Ryfinance.Sector`
+- `Ryfinance.Industry`
+- `Ryfinance.WebSocket`
+- `Ryfinance.AsyncWebSocket`
 - `download`
-- `Search`
-- `Market#summary`
-- `Sector`
-- `Industry`
+- `screen`
 - `EquityQuery`
 - `FundQuery`
 - `ETFQuery`
-- `screen`
 - `set_tz_cache_location`
-- `WebSocket`
-- `AsyncWebSocket`
 
 Ticker stock data:
 
@@ -67,7 +70,7 @@ Ticker stock data:
 - `get_splits` / `splits`
 - `get_capital_gains` / `capital_gains`
 - `get_actions` / `actions`
-- `get_shares_full`
+- `get_shares_full` / `shares_full`
 
 Ticker quote data:
 
@@ -78,39 +81,34 @@ Ticker quote data:
 
 Ticker financials and analysis:
 
-- `calendar`
-- `sec_filings`
-- `recommendations`
-- `recommendations_summary`
-- `upgrades_downgrades`
-- `analyst_price_targets`
-- `earnings_estimate`
-- `revenue_estimate`
-- `earnings_history`
-- `eps_trend`
-- `eps_revisions`
-- `growth_estimates`
-- `sustainability`
-- `major_holders`
-- `institutional_holders`
-- `mutualfund_holders`
-- `insider_transactions`
-- `insider_roster_holders`
-- `insider_purchases`
-- `income_stmt`
-- `quarterly_income_stmt`
-- `ttm_income_stmt`
-- `balance_sheet`
-- `quarterly_balance_sheet`
-- `cash_flow`
-- `quarterly_cash_flow`
-- `ttm_cash_flow`
-- `earnings`
-- `quarterly_earnings`
+- `get_calendar` / `calendar`
+- `get_sec_filings` / `sec_filings`
+- `get_recommendations` / `recommendations`
+- `get_recommendations_summary` / `recommendations_summary`
+- `get_upgrades_downgrades` / `upgrades_downgrades`
+- `get_analyst_price_targets` / `analyst_price_targets`
+- `get_earnings_estimate` / `earnings_estimate`
+- `get_revenue_estimate` / `revenue_estimate`
+- `get_earnings_history` / `earnings_history`
+- `get_eps_trend` / `eps_trend`
+- `get_eps_revisions` / `eps_revisions`
+- `get_growth_estimates` / `growth_estimates`
+- `get_sustainability` / `sustainability`
+- `get_major_holders` / `major_holders`
+- `get_institutional_holders` / `institutional_holders`
+- `get_mutualfund_holders` / `mutualfund_holders`
+- `get_insider_transactions` / `insider_transactions`
+- `get_insider_roster_holders` / `insider_roster_holders`
+- `get_insider_purchases` / `insider_purchases`
+- `get_income_stmt` / `income_statement`
+- `get_balance_sheet` / `balance_sheet`
+- `get_cash_flow` / `cash_flow`
+- `get_earnings` / `earnings`
+- `income_stmt`, `quarterly_income_stmt`, and `ttm_income_stmt`
 
 Options:
 
-- `options`
+- `get_options` / `options`
 - `option_chain`
 
 Sector and industry data:
@@ -167,6 +165,8 @@ Live streaming:
 - Time values are returned as UTC `Time` objects.
 - `threads`, `progress`, and `ignore_tz` are accepted by `download` for API
   familiarity but are currently ignored.
+- Top-level `Ryfinance.Ticker(...)` and similar capitalized module methods are
+  compatibility shims. Prefer `Ryfinance::Ticker.new(...)` in new Ruby code.
 - `AsyncWebSocket` follows Ruby's `async` gem conventions instead of Python's
   `async` / `await` syntax.
 - Screener query field coverage is focused on common Yahoo fields and the
@@ -204,7 +204,7 @@ chain.calls
 Ruby:
 
 ```ruby
-chain = Ryfinance.Ticker("MSFT").option_chain("2026-01-16")
+chain = Ryfinance::Ticker.new("MSFT").option_chain("2026-01-16")
 chain.calls
 ```
 
@@ -221,9 +221,9 @@ msft.quarterly_income_stmt
 Ruby:
 
 ```ruby
-msft = Ryfinance.Ticker("MSFT")
+msft = Ryfinance::Ticker.new("MSFT")
 msft.balance_sheet
-msft.quarterly_income_stmt
+msft.quarterly_income_statement
 ```
 
 ### Screener
@@ -261,7 +261,7 @@ technology.industries
 Ruby:
 
 ```ruby
-technology = Ryfinance.Sector("technology")
+technology = Ryfinance::Sector.new("technology")
 technology.industries
 ```
 

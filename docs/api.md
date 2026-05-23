@@ -2,23 +2,39 @@
 
 This document lists the public API provided by RYFinance 0.3.0.
 
-## Module Functions
+## API Shape
 
-### `Ryfinance.Ticker(ticker, session: nil, client: nil)`
+RYFinance is Ruby-first. Unless a method appears in
+[Compatibility Aliases](#compatibility-aliases), the API below is the canonical
+Ruby API. Canonical entry points use:
 
-Returns a `Ryfinance::Ticker`.
+- Direct class construction, such as `Ryfinance::Ticker.new("MSFT")`
+- Lowercase module helpers, such as `Ryfinance.ticker("MSFT")`
+- Keyword arguments and snake_case option names
+- Blocks for streaming callbacks
+- `Ryfinance::Table` and plain hashes instead of Pandas objects
+
+yfinance-shaped names remain available as compatibility aliases for migration.
+
+## Module Helpers
+
+### `Ryfinance.ticker(ticker, session: nil, client: nil)`
+
+Returns a `Ryfinance::Ticker`. Direct construction is equally canonical.
 
 ```ruby
-Ryfinance.Ticker("MSFT")
-Ryfinance.Ticker(["OR", "XPAR"])
+Ryfinance.ticker("MSFT")
+Ryfinance::Ticker.new("MSFT")
+Ryfinance::Ticker.new(["OR", "XPAR"])
 ```
 
-### `Ryfinance.Tickers(tickers, session: nil, client: nil)`
+### `Ryfinance.tickers(tickers, session: nil, client: nil)`
 
 Returns a `Ryfinance::Tickers` collection.
 
 ```ruby
-Ryfinance.Tickers("MSFT AAPL GOOG")
+Ryfinance.tickers("MSFT AAPL GOOG")
+Ryfinance::Tickers.new("MSFT AAPL GOOG")
 ```
 
 ### `Ryfinance.download(tickers, **options)`
@@ -64,7 +80,7 @@ Returns a `Ryfinance::Sector`.
 
 ```ruby
 Ryfinance.sector("technology")
-Ryfinance.Sector("financial-services")
+Ryfinance::Sector.new("financial-services")
 ```
 
 ### `Ryfinance.industry(key, session: nil, client: nil)`
@@ -73,7 +89,7 @@ Returns a `Ryfinance::Industry`.
 
 ```ruby
 Ryfinance.industry("software-infrastructure")
-Ryfinance.Industry("semiconductors")
+Ryfinance::Industry.new("semiconductors")
 ```
 
 ### `Ryfinance.screen(query, **options)`
@@ -197,9 +213,10 @@ hashes.
 ### Financial Statements
 
 ```ruby
-ticker.income_stmt
-ticker.quarterly_income_stmt
-ticker.ttm_income_stmt
+ticker.income_statement
+ticker.income_statement(as_dict: true)
+ticker.quarterly_income_statement
+ticker.ttm_income_statement
 ticker.balance_sheet
 ticker.quarterly_balance_sheet
 ticker.cash_flow
@@ -209,13 +226,14 @@ ticker.earnings
 ticker.quarterly_earnings
 ```
 
-Getter methods are also available:
+Statement methods accept the same keyword options as their compatibility
+getters:
 
 ```ruby
-ticker.get_income_stmt(freq: "yearly", as_dict: false)
-ticker.get_balance_sheet(freq: "quarterly")
-ticker.get_cash_flow(freq: "yearly")
-ticker.get_earnings(freq: "quarterly")
+ticker.income_statement(freq: "yearly", as_dict: false)
+ticker.balance_sheet(freq: "quarterly")
+ticker.cash_flow(freq: "trailing")
+ticker.earnings(freq: "quarterly")
 ```
 
 ### Options
@@ -235,7 +253,7 @@ ticker.option_chain("2026-01-16")
 ### Shares and ISIN
 
 ```ruby
-ticker.get_shares_full(start: "2024-01-01", end: "2024-12-31")
+ticker.shares_full(start: "2024-01-01", end: "2024-12-31")
 ticker.isin
 ```
 
@@ -301,12 +319,6 @@ Decoded quote hashes use snake_case symbol keys. Common keys include:
 - `:change`
 - `:short_name`
 
-Top-level construction is also available:
-
-```ruby
-ws = Ryfinance.WebSocket(verbose: false)
-```
-
 ## `Ryfinance::AsyncWebSocket`
 
 Async-compatible WebSocket client for applications already using the `async`
@@ -317,7 +329,7 @@ gem. It has the same constructor and methods as `Ryfinance::WebSocket`, but
 require "async"
 
 Async do
-  ws = Ryfinance.AsyncWebSocket(verbose: false)
+  ws = Ryfinance::AsyncWebSocket.new(verbose: false)
   ws.subscribe("MSFT")
   ws.listen { |quote| puts quote[:price] }
 ensure
@@ -397,6 +409,80 @@ table.to_a
 table.to_h(index: :date)
 table.to_csv
 ```
+
+## Compatibility Aliases
+
+These public names are retained for yfinance migration or historical RYFinance
+compatibility. New Ruby code should prefer the canonical names above.
+
+### Module Constructors
+
+| Compatibility alias | Canonical Ruby API |
+| --- | --- |
+| `Ryfinance.Ticker("MSFT")` | `Ryfinance::Ticker.new("MSFT")` or `Ryfinance.ticker("MSFT")` |
+| `Ryfinance.Tickers("MSFT AAPL")` | `Ryfinance::Tickers.new("MSFT AAPL")` or `Ryfinance.tickers("MSFT AAPL")` |
+| `Ryfinance.Sector("technology")` | `Ryfinance::Sector.new("technology")` or `Ryfinance.sector("technology")` |
+| `Ryfinance.Industry("software")` | `Ryfinance::Industry.new("software")` or `Ryfinance.industry("software")` |
+| `Ryfinance.WebSocket(...)` | `Ryfinance::WebSocket.new(...)` |
+| `Ryfinance.AsyncWebSocket(...)` | `Ryfinance::AsyncWebSocket.new(...)` |
+
+### Ticker Getter Methods
+
+| Compatibility alias | Canonical Ruby API |
+| --- | --- |
+| `get_history_metadata` | `history_metadata` |
+| `get_dividends` | `dividends` |
+| `get_splits` | `splits` |
+| `get_capital_gains` | `capital_gains` |
+| `get_actions` | `actions` |
+| `get_info` | `info` |
+| `get_fast_info` | `fast_info` |
+| `get_calendar` | `calendar` |
+| `get_sec_filings` | `sec_filings` |
+| `get_recommendations` | `recommendations` |
+| `get_recommendations_summary` | `recommendations_summary` |
+| `get_upgrades_downgrades` | `upgrades_downgrades` |
+| `get_analyst_price_targets` | `analyst_price_targets` |
+| `get_earnings_estimate` | `earnings_estimate` |
+| `get_revenue_estimate` | `revenue_estimate` |
+| `get_earnings_history` | `earnings_history` |
+| `get_eps_trend` | `eps_trend` |
+| `get_eps_revisions` | `eps_revisions` |
+| `get_growth_estimates` | `growth_estimates` |
+| `get_sustainability` | `sustainability` |
+| `get_major_holders` | `major_holders` |
+| `get_institutional_holders` | `institutional_holders` |
+| `get_mutualfund_holders` | `mutualfund_holders` |
+| `get_insider_transactions` | `insider_transactions` |
+| `get_insider_roster_holders` | `insider_roster_holders` |
+| `get_insider_purchases` | `insider_purchases` |
+| `get_options` | `options` |
+| `get_news` | `news` |
+| `get_shares_full` | `shares_full` |
+| `get_isin` | `isin` |
+
+### Financial Statement Aliases
+
+| Compatibility alias | Canonical Ruby API |
+| --- | --- |
+| `income_stmt`, `incomestmt`, `financials` | `income_statement` |
+| `quarterly_income_stmt`, `quarterly_incomestmt`, `quarterly_financials` | `quarterly_income_statement` |
+| `ttm_income_stmt`, `ttm_incomestmt`, `ttm_financials` | `ttm_income_statement` |
+| `balancesheet` | `balance_sheet` |
+| `quarterly_balancesheet` | `quarterly_balance_sheet` |
+| `cashflow` | `cash_flow` |
+| `quarterly_cashflow` | `quarterly_cash_flow` |
+| `ttm_cashflow` | `ttm_cash_flow` |
+| `get_income_stmt`, `get_incomestmt`, `get_financials` | `income_statement` |
+| `get_balance_sheet`, `get_balancesheet` | `balance_sheet` |
+| `get_cash_flow`, `get_cashflow` | `cash_flow` |
+| `get_earnings` | `earnings` |
+
+### Keyword Aliases
+
+Some module methods accept both yfinance-style camelCase keyword arguments and
+Ruby snake_case keywords. Prefer snake_case in new code, for example
+`sort_field:` over `sortField:` and `user_id_type:` over `userIdType:`.
 
 ## Errors
 

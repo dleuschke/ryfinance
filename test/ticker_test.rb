@@ -9,6 +9,18 @@ class TickerTest < Minitest::Test
     @transport.route(%r{/v7/finance/quote}) { quote_fixture }
     @transport.route(%r{/v10/finance/quoteSummary/}) { quote_summary_fixture }
     @transport.route(%r{/v7/finance/options/}) { options_fixture }
+    @transport.route(%r{/ws/fundamentals-timeseries/v1/finance/timeseries/}) do
+      {
+        "timeseries" => {
+          "result" => [
+            {
+              "timestamp" => [1_704_067_200],
+              "shares_out" => [7_430_000_000]
+            }
+          ]
+        }
+      }
+    end
     @transport.route(%r{/v1/finance/search}) do
       {
         "quotes" => [{ "symbol" => "MSFT", "shortname" => "Microsoft" }],
@@ -83,5 +95,18 @@ class TickerTest < Minitest::Test
 
     assert_equal "MSFT", search.quotes.first[:symbol]
     assert_equal "Microsoft news", @ticker.news(count: 1).first[:title]
+  end
+
+  def test_shares_full_is_ruby_alias_for_get_shares_full
+    shares = @ticker.shares_full(start: "2024-01-01", end: "2024-01-02")
+
+    assert_equal [:date, :shares], shares.columns
+    assert_equal 7_430_000_000, shares.first[:shares]
+  end
+
+  def test_ruby_first_financial_statement_aliases_are_public
+    assert @ticker.respond_to?(:income_statement)
+    assert @ticker.respond_to?(:quarterly_income_statement)
+    assert @ticker.respond_to?(:ttm_income_statement)
   end
 end

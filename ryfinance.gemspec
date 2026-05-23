@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors = ["RYFinance contributors"]
   spec.email = ["maintainers@example.com"]
 
-  spec.summary = "Ruby access to Yahoo Finance data with a yfinance-shaped API."
-  spec.description = "RYFinance is a Ruby gem that ports the core user-facing workflow of Python's yfinance library: ticker history, quote info, corporate actions, options, search, WebSocket streaming, and multi-ticker downloads."
+  spec.summary = "Ruby-first access to Yahoo Finance data."
+  spec.description = "RYFinance is a Ruby-first gem that ports the core user-facing workflow of Python's yfinance library: ticker history, quote info, corporate actions, options, search, WebSocket streaming, and multi-ticker downloads."
   spec.homepage = "https://github.com/dleuschke/ryfinance"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"
