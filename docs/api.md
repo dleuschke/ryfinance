@@ -1,0 +1,224 @@
+# API Reference
+
+This document lists the public API provided by RYFinance 0.1.0.
+
+## Module Functions
+
+### `Ryfinance.Ticker(ticker, session: nil, client: nil)`
+
+Returns a `Ryfinance::Ticker`.
+
+```ruby
+Ryfinance.Ticker("MSFT")
+Ryfinance.Ticker(["OR", "XPAR"])
+```
+
+### `Ryfinance.Tickers(tickers, session: nil, client: nil)`
+
+Returns a `Ryfinance::Tickers` collection.
+
+```ruby
+Ryfinance.Tickers("MSFT AAPL GOOG")
+```
+
+### `Ryfinance.download(tickers, **options)`
+
+Downloads historical data for one or more tickers.
+
+Common options:
+
+- `period:` one of `1d 5d 1mo 3mo 6mo 1y 2y 5y 10y ytd max`
+- `interval:` one of `1m 2m 5m 15m 30m 60m 90m 1h 1d 5d 1wk 1mo 3mo`
+- `start:` explicit inclusive start date or time
+- `end:` explicit exclusive end date or time
+- `group_by:` `"column"` or `"ticker"`
+- `auto_adjust:` adjust OHLC using adjusted close
+- `actions:` include dividends, splits, and capital gains
+- `prepost:` include pre-market and post-market bars
+- `rounding:` round numeric float values to two decimals
+- `timeout:` HTTP timeout in seconds
+- `multi_level_index:` when true, always return `DownloadResult`
+
+For one ticker the default return is `Ryfinance::Table`. For multiple tickers the
+return is `Ryfinance::DownloadResult`.
+
+### `Ryfinance.search(query, **options)`
+
+Runs Yahoo Finance search and returns a `Ryfinance::Search`.
+
+Options:
+
+- `quotes_count:`
+- `news_count:`
+- `lists_count:`
+- `timeout:`
+
+### `Ryfinance.market(region: "US")`
+
+Returns a `Ryfinance::Market` object. Call `#summary` to fetch market summary
+rows.
+
+## `Ryfinance::Ticker`
+
+### Construction
+
+```ruby
+ticker = Ryfinance::Ticker.new("MSFT")
+```
+
+Supported ticker forms:
+
+- A Yahoo symbol string such as `"MSFT"` or `"^GSPC"`
+- A two-element array `[symbol, mic_code]` for common market identifier codes
+
+### Price History
+
+```ruby
+ticker.history(period: "1mo", interval: "1d")
+ticker.history(start: "2024-01-01", end: "2024-02-01")
+ticker.history(actions: true, auto_adjust: false)
+```
+
+Returns a `Ryfinance::Table` with columns:
+
+- `date`
+- `open`
+- `high`
+- `low`
+- `close`
+- `volume`
+- `adj_close`
+- `dividends`, when `actions: true`
+- `stock_splits`, when `actions: true`
+- `capital_gains`, when `actions: true`
+
+### Corporate Actions
+
+```ruby
+ticker.dividends
+ticker.splits
+ticker.capital_gains
+ticker.actions
+```
+
+### Quote and Company Info
+
+```ruby
+ticker.info
+ticker.fast_info
+ticker.calendar
+ticker.sec_filings
+ticker.news(count: 10)
+```
+
+`info` returns a flattened hash combining Yahoo quote summary modules and quote
+data. Keys are snake_case symbols.
+
+### Analysis and Holders
+
+```ruby
+ticker.recommendations
+ticker.recommendations_summary
+ticker.upgrades_downgrades
+ticker.analyst_price_targets
+ticker.earnings_estimate
+ticker.revenue_estimate
+ticker.earnings_history
+ticker.eps_trend
+ticker.eps_revisions
+ticker.growth_estimates
+ticker.sustainability
+ticker.major_holders
+ticker.institutional_holders
+ticker.mutualfund_holders
+ticker.insider_transactions
+ticker.insider_roster_holders
+ticker.insider_purchases
+```
+
+Table-returning methods accept `as_dict: true`, which returns an array of row
+hashes.
+
+### Financial Statements
+
+```ruby
+ticker.income_stmt
+ticker.quarterly_income_stmt
+ticker.ttm_income_stmt
+ticker.balance_sheet
+ticker.quarterly_balance_sheet
+ticker.cash_flow
+ticker.quarterly_cash_flow
+ticker.ttm_cash_flow
+ticker.earnings
+ticker.quarterly_earnings
+```
+
+Getter methods are also available:
+
+```ruby
+ticker.get_income_stmt(freq: "yearly", as_dict: false)
+ticker.get_balance_sheet(freq: "quarterly")
+ticker.get_cash_flow(freq: "yearly")
+ticker.get_earnings(freq: "quarterly")
+```
+
+### Options
+
+```ruby
+ticker.options
+ticker.option_chain
+ticker.option_chain("2026-01-16")
+```
+
+`option_chain` returns `Ryfinance::OptionChain` with:
+
+- `calls`
+- `puts`
+- `underlying`
+
+### Shares and ISIN
+
+```ruby
+ticker.get_shares_full(start: "2024-01-01", end: "2024-12-31")
+ticker.isin
+```
+
+`isin` returns Yahoo-provided ISIN data when present. It does not scrape third
+party websites.
+
+## `Ryfinance::Tickers`
+
+```ruby
+tickers = Ryfinance::Tickers.new("MSFT AAPL")
+tickers["MSFT"].info
+tickers.history(period: "5d")
+tickers.download(period: "1y")
+```
+
+## `Ryfinance::Table`
+
+`Table` is an enumerable wrapper around row hashes.
+
+```ruby
+table.each { |row| puts row[:close] }
+table[:close]
+table.first
+table.last(10)
+table.where { |row| row[:close].to_f > 100 }
+table.to_a
+table.to_h(index: :date)
+table.to_csv
+```
+
+## Errors
+
+All gem-specific errors inherit from `Ryfinance::Error`.
+
+- `Ryfinance::InvalidTickerError`
+- `Ryfinance::HTTPError`
+- `Ryfinance::RateLimitError`
+- `Ryfinance::YahooError`
+- `Ryfinance::NotFoundError`
+- `Ryfinance::UnsupportedFeatureError`
+
