@@ -236,6 +236,16 @@ end
 already open, send the control message immediately. The client periodically
 resends the active subscription list as a heartbeat.
 
+Live streaming has an opt-in smoke test that connects to Yahoo and waits for one
+quote. It defaults to `BTC-USD` so it can run outside US market hours:
+
+```sh
+RYFINANCE_LIVE=1 bundle exec rake test:live
+```
+
+Use `RYFINANCE_LIVE_SYMBOL=MSFT` or `RYFINANCE_LIVE_TIMEOUT=30` to override the
+default symbol and timeout. This test is intentionally excluded from normal CI.
+
 ## Screeners
 
 Run Yahoo's predefined screens:

@@ -5,6 +5,7 @@ All notable changes to RYFinance are documented here.
 ## Unreleased
 
 - Added CI and release hygiene checks.
+- Added an opt-in live Yahoo WebSocket smoke test.
 
 ## 0.3.0 - 2026-05-23
 

@@ -13,6 +13,16 @@ bundle exec rake ci
 `rake ci` runs the test suite, builds the gem, and checks that release metadata
 stays in sync with `Ryfinance::VERSION`.
 
+For releases that touch streaming code, run the opt-in live smoke test as well:
+
+```sh
+RYFINANCE_LIVE=1 bundle exec rake test:live
+```
+
+The live smoke test connects to Yahoo's WebSocket endpoint and waits for one
+quote. It defaults to `BTC-USD`; set `RYFINANCE_LIVE_SYMBOL` or
+`RYFINANCE_LIVE_TIMEOUT` to override those values.
+
 ## Release Steps
 
 1. Update `lib/ryfinance/version.rb`.

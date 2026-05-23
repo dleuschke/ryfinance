@@ -6,6 +6,14 @@ Rake::TestTask.new(:test) do |task|
   task.pattern = "test/**/*_test.rb"
 end
 
+namespace :test do
+  desc "Run opt-in live Yahoo smoke tests"
+  Rake::TestTask.new(:live) do |task|
+    task.libs << "lib" << "test"
+    task.pattern = "test/live_smoke.rb"
+  end
+end
+
 desc "Build the ryfinance gem"
 task :build do
   sh "gem build ryfinance.gemspec"
