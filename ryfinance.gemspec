@@ -37,7 +37,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "io-stream", ">= 0.6", "< 0.7"
   spec.add_dependency "metrics", ">= 0.12", "< 0.13"
   spec.add_dependency "protocol-http", ">= 0.49", "< 0.50"
-  spec.add_dependency "protocol-http1", ">= 0.30", "< 0.31"
+  spec.add_dependency "protocol-http1", ">= 0.30", "< 0.40"
   spec.add_dependency "protocol-http2", ">= 0.22", "< 0.23"
   spec.add_dependency "protocol-rack", ">= 0.7", "< 0.12"
   spec.add_dependency "protocol-websocket", ">= 0.17", "< 0.18"

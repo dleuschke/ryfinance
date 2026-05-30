@@ -17,7 +17,7 @@ PATH
       metrics (>= 0.12, < 0.13)
       net-http (>= 0.4, < 1)
       protocol-http (>= 0.49, < 0.50)
-      protocol-http1 (>= 0.30, < 0.31)
+      protocol-http1 (>= 0.30, < 0.40)
       protocol-http2 (>= 0.22, < 0.23)
       protocol-rack (>= 0.7, < 0.12)
       protocol-websocket (>= 0.17, < 0.18)
@@ -78,7 +78,7 @@ GEM
       uri (>= 0.11.1)
     protocol-hpack (1.5.1)
     protocol-http (0.49.0)
-    protocol-http1 (0.30.0)
+    protocol-http1 (0.34.0)
       protocol-http (~> 0.22)
     protocol-http2 (0.22.1)
       protocol-hpack (~> 1.4)
@@ -109,6 +109,7 @@ CHECKSUMS
   async-websocket (0.30.0) sha256=55739954528ad8f87f7792d0452e1268d1ef2aa5b3719f79400a05a1a6202cdf
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
+  bundler (4.0.12) sha256=7f8b757d28dfb636e7b24fba2344ac6dd13b5b24f4b46d62573d483f211825ac
   console (1.30.2) sha256=e61c7a01ab9eb5cc04f91e7322258ccf362e2c3915d36ee2e63b05f228bef66d
   csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
   fiber-annotation (0.2.0) sha256=7abfadf1d119f508867d4103bf231c0354d019cc39a5738945dec2edadaf6c03
@@ -125,7 +126,7 @@ CHECKSUMS
   net-http (0.8.0) sha256=df42c47ce9f9e95ad32a317c97c12f945bc1af365288837ea4ff259876ecb46d
   protocol-hpack (1.5.1) sha256=6feca238b8078da1cd295677d6f306c6001af92d75fe0643d33e6956cbc3ad91
   protocol-http (0.49.0) sha256=b5419aa60ea74912db2658d16722f23ee37229ca497b1d1413f50f6c04f577b7
-  protocol-http1 (0.30.0) sha256=9492961a4cca6909fe4d23d60e2cac36b8feb9b4c129c4428fbcf3f973cac36a
+  protocol-http1 (0.34.0) sha256=96f9a88ceb77d8e9ae967037c3831a2869e04bb55663209a8043d63ced177c4a
   protocol-http2 (0.22.1) sha256=91966e7083e792e9b54fd5a62891a59078dfe8e1cf0162ce58b387db812ca768
   protocol-rack (0.11.2) sha256=49417e1608e9c7612f7a45d0324d427e7fd4a14f09e9b38d4993c58a5304f7f0
   protocol-websocket (0.17.0) sha256=5a27e4c9f3f9ae7682a0aaf09ade9533d5a54f0d834a9ceaa49356ffb7d1060a
