@@ -4,7 +4,7 @@ PATH
     ryfinance (0.3.0)
       async (>= 2.10, < 2.25)
       async-http (>= 0.76, < 0.89)
-      async-pool (>= 0.9, < 0.10)
+      async-pool (>= 0.9, < 0.12)
       async-websocket (>= 0.25, < 0.31)
       base64 (>= 0.2, < 1)
       console (>= 1.29, < 1.31)
@@ -42,10 +42,8 @@ GEM
       protocol-http1 (~> 0.30)
       protocol-http2 (~> 0.22)
       traces (~> 0.10)
-    async-pool (0.9.0)
+    async-pool (0.10.3)
       async (>= 1.25)
-      metrics (~> 0.11)
-      traces
     async-websocket (0.30.0)
       async-http (~> 0.76)
       protocol-http (~> 0.34)
@@ -71,7 +69,7 @@ GEM
     io-endpoint (0.14.0)
     io-event (1.11.2)
     io-stream (0.6.1)
-    json (2.19.5)
+    json (2.19.7)
     metrics (0.12.2)
     minitest (5.27.0)
     net-http (0.8.0)
@@ -105,10 +103,11 @@ DEPENDENCIES
 CHECKSUMS
   async (2.24.0) sha256=589d11ac6d5808da195ed5ac71f37afcab505855aa958bf5fc463a5469c34377
   async-http (0.88.0) sha256=c568743f0606f283b208b7c6adee9070c5e8f59867bf17028bafa5a6ea412f99
-  async-pool (0.9.0) sha256=6799f84d6cef0c7a8d7e5961099cfb37afee246a7088dff48bd12a3ce4001d7f
+  async-pool (0.10.3) sha256=b542f9decc34fd3d6d0544576408bb79d6d2d2aa9ca467a75b546ac45765008a
   async-websocket (0.30.0) sha256=55739954528ad8f87f7792d0452e1268d1ef2aa5b3719f79400a05a1a6202cdf
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
+  bundler (4.0.12) sha256=7f8b757d28dfb636e7b24fba2344ac6dd13b5b24f4b46d62573d483f211825ac
   console (1.30.2) sha256=e61c7a01ab9eb5cc04f91e7322258ccf362e2c3915d36ee2e63b05f228bef66d
   csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
   fiber-annotation (0.2.0) sha256=7abfadf1d119f508867d4103bf231c0354d019cc39a5738945dec2edadaf6c03
@@ -119,7 +118,7 @@ CHECKSUMS
   io-endpoint (0.14.0) sha256=51755235ef1aa27f48286f408eb25d7eb14d54d79bd3b3752486f74bbe7f5535
   io-event (1.11.2) sha256=4a640ac7d86d9f5fc0d4f47dd83eff82e9fe5818b0d910596b058ca1b34b96b9
   io-stream (0.6.1) sha256=4520f0c1412dfd264e9ab0d363e9aca90a43541850220b47f1ebd5499ad2e96f
-  json (2.19.5) sha256=218a18553e4801d579ca7e0f5bc72bafd776d7397238a1fb4e74db5b0a812c59
+  json (2.19.7) sha256=fe432c8639f6efff69f9d73b518a3705d9581ab93156f981ea72806e1e5bcc3e
   metrics (0.12.2) sha256=75caab08235dc2b3bb7440e00f64e8426b23b9caa94755d81cf9371fffa1e12a
   minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
   net-http (0.8.0) sha256=df42c47ce9f9e95ad32a317c97c12f945bc1af365288837ea4ff259876ecb46d

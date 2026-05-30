@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
   # Keep the async WebSocket stack compatible with the gem's Ruby 3.1 floor.
   spec.add_dependency "async", ">= 2.10", "< 2.25"
   spec.add_dependency "async-http", ">= 0.76", "< 0.89"
-  spec.add_dependency "async-pool", ">= 0.9", "< 0.10"
+  spec.add_dependency "async-pool", ">= 0.9", "< 0.12"
   spec.add_dependency "async-websocket", ">= 0.25", "< 0.31"
   spec.add_dependency "console", ">= 1.29", "< 1.31"
   spec.add_dependency "io-endpoint", ">= 0.14", "< 0.15"
