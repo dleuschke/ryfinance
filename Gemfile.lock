@@ -10,7 +10,7 @@ PATH
       console (>= 1.29, < 1.31)
       csv (>= 3.0, < 4)
       google-protobuf (>= 4.0, < 5)
-      io-endpoint (>= 0.14, < 0.15)
+      io-endpoint (>= 0.14, < 0.18)
       io-event (>= 1.11, < 1.12)
       io-stream (>= 0.6, < 0.7)
       json (>= 2.0, < 3)
@@ -68,7 +68,7 @@ GEM
     google-protobuf (4.35.0-arm64-darwin)
       bigdecimal
       rake (~> 13.3)
-    io-endpoint (0.14.0)
+    io-endpoint (0.15.2)
     io-event (1.11.2)
     io-stream (0.6.1)
     json (2.19.5)
@@ -109,6 +109,7 @@ CHECKSUMS
   async-websocket (0.30.0) sha256=55739954528ad8f87f7792d0452e1268d1ef2aa5b3719f79400a05a1a6202cdf
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
+  bundler (4.0.12) sha256=7f8b757d28dfb636e7b24fba2344ac6dd13b5b24f4b46d62573d483f211825ac
   console (1.30.2) sha256=e61c7a01ab9eb5cc04f91e7322258ccf362e2c3915d36ee2e63b05f228bef66d
   csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
   fiber-annotation (0.2.0) sha256=7abfadf1d119f508867d4103bf231c0354d019cc39a5738945dec2edadaf6c03
@@ -116,7 +117,7 @@ CHECKSUMS
   fiber-storage (1.0.1) sha256=f48e5b6d8b0be96dac486332b55cee82240057065dc761c1ea692b2e719240e1
   google-protobuf (4.35.0) sha256=95346162c792ed78c9a28cbf2d937a53f706de6df36a27471582f63f03c30c0d
   google-protobuf (4.35.0-arm64-darwin) sha256=66ab26d3fc82b8950702e53ab16c198e3c0ea3f2a38aaaf1f32152da45593ac5
-  io-endpoint (0.14.0) sha256=51755235ef1aa27f48286f408eb25d7eb14d54d79bd3b3752486f74bbe7f5535
+  io-endpoint (0.15.2) sha256=1e7e90bb683945288075b43ac505aba11460a281600236b5f8fbc210cf878f25
   io-event (1.11.2) sha256=4a640ac7d86d9f5fc0d4f47dd83eff82e9fe5818b0d910596b058ca1b34b96b9
   io-stream (0.6.1) sha256=4520f0c1412dfd264e9ab0d363e9aca90a43541850220b47f1ebd5499ad2e96f
   json (2.19.5) sha256=218a18553e4801d579ca7e0f5bc72bafd776d7397238a1fb4e74db5b0a812c59
