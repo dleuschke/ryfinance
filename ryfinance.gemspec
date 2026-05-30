@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "async-pool", ">= 0.9", "< 0.10"
   spec.add_dependency "async-websocket", ">= 0.25", "< 0.31"
   spec.add_dependency "console", ">= 1.29", "< 1.31"
-  spec.add_dependency "io-endpoint", ">= 0.14", "< 0.15"
+  spec.add_dependency "io-endpoint", ">= 0.14", "< 0.18"
   spec.add_dependency "io-event", ">= 1.11", "< 1.12"
   spec.add_dependency "io-stream", ">= 0.6", "< 0.7"
   spec.add_dependency "metrics", ">= 0.12", "< 0.13"
