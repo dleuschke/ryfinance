@@ -74,7 +74,7 @@ GEM
     json (2.19.5)
     metrics (0.12.2)
     minitest (5.27.0)
-    net-http (0.8.0)
+    net-http (0.9.1)
       uri (>= 0.11.1)
     protocol-hpack (1.5.1)
     protocol-http (0.49.0)
@@ -109,6 +109,7 @@ CHECKSUMS
   async-websocket (0.30.0) sha256=55739954528ad8f87f7792d0452e1268d1ef2aa5b3719f79400a05a1a6202cdf
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
+  bundler (4.0.12) sha256=7f8b757d28dfb636e7b24fba2344ac6dd13b5b24f4b46d62573d483f211825ac
   console (1.30.2) sha256=e61c7a01ab9eb5cc04f91e7322258ccf362e2c3915d36ee2e63b05f228bef66d
   csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
   fiber-annotation (0.2.0) sha256=7abfadf1d119f508867d4103bf231c0354d019cc39a5738945dec2edadaf6c03
@@ -122,7 +123,7 @@ CHECKSUMS
   json (2.19.5) sha256=218a18553e4801d579ca7e0f5bc72bafd776d7397238a1fb4e74db5b0a812c59
   metrics (0.12.2) sha256=75caab08235dc2b3bb7440e00f64e8426b23b9caa94755d81cf9371fffa1e12a
   minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
-  net-http (0.8.0) sha256=df42c47ce9f9e95ad32a317c97c12f945bc1af365288837ea4ff259876ecb46d
+  net-http (0.9.1) sha256=25ba0b67c63e89df626ed8fac771d0ad24ad151a858af2cc8e6a716ca4336996
   protocol-hpack (1.5.1) sha256=6feca238b8078da1cd295677d6f306c6001af92d75fe0643d33e6956cbc3ad91
   protocol-http (0.49.0) sha256=b5419aa60ea74912db2658d16722f23ee37229ca497b1d1413f50f6c04f577b7
   protocol-http1 (0.30.0) sha256=9492961a4cca6909fe4d23d60e2cac36b8feb9b4c129c4428fbcf3f973cac36a
